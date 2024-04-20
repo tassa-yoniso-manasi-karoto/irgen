@@ -1,0 +1,17 @@
+{
+	"Collection": "",
+	"DestDir": "",
+	"LenStack": 3,
+	"ResXMax": 1920,
+	"ResYMax": 1080,
+	"Fn": [
+		"FromSuperior",
+		"FromSuperior",
+		"FromSuperiorAndDescendants"
+	],
+	"FnScope": [
+		1,
+		2,
+		10
+	]
+}
