@@ -1,0 +1,122 @@
+.card {
+ font-size: 22px !important;
+ text-align: left;
+ margin: 5px auto;
+ letter-spacing: -1px;
+}
+.mobile, .mobile .card {
+  font-size: 100% !important;
+}
+
+.heading::after{
+  content: ":";
+}
+.del::after{
+  content: " ";
+}
+
+.mobile .else2 {
+ min-width: 0%;
+ max-width:100%;
+ margin:auto !important;
+ display: flex;
+ height:auto;
+ flex-wrap: wrap;
+ align-content: center;
+ position:static;
+}
+
+
+.cxt {
+ font-size: 15px;
+}
+
+.cxtcol {
+ overflow: auto;
+}
+
+.cxtcol img {
+ width: auto;
+ display: block;
+ height:auto;
+ margin-left: auto;
+ margin-right: auto;
+ max-width: 90%;
+}
+
+span[style=blist] {
+ font-weight: bold;
+ font-variant: small-caps;
+ font-size: 29px;
+ color: #8e8ea3;
+}
+
+.front {
+ width: 800px;
+ margin-left: auto;
+ margin-right: auto;
+}
+
+.squel {
+ table-layout: fixed;
+ width: 100%;
+}
+
+
+.else {
+ position:fixed;
+ /* force the second scrollbar to be on the side of the screen */
+ min-width: 50%;
+ max-width: 50%;
+ overflow-y: scroll;
+ height: 100%;
+}
+
+.else img {
+ max-width: 100%;
+ width: auto;
+ height: auto;
+ max-height: 27vh;
+ max-width: 45vh;
+}
+
+
+.else2 {
+ /* force the second scrollbar to be on the side of the screen */
+ min-width: 55%;
+ max-width: 55%;
+ margin:auto !important;
+ display: flex;
+ height:auto;
+ flex-wrap: wrap;
+ align-content: center;
+}
+
+.else2 img {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+}
+
+
+.title2 {
+  font-size: 23px;
+  text-decoration: underline;
+  font-weight: bold;
+  text-align: center;
+}
+
+.title {
+  font-size: 23px;
+  text-align: left;
+  text-decoration: underline;
+  font-weight: bold;
+}
+
+
+
+ul {
+    margin: 2px;
+}
+
+

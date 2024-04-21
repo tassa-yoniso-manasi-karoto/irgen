@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"path/filepath"
 	"github.com/rs/zerolog"
 )
 
@@ -37,7 +38,7 @@ func init() {
 	if errjs := json.Unmarshal([]byte(data), &pref); errjs != nil && !errors.Is(err, os.ErrNotExist){
 		check(err)
 	}
-	if pref.DestDir == "" {
+	if pref.DestDir == "" && filepath.IsAbs(CurrentDir) {
 		pref.DestDir = CurrentDir
 	}
 	if pref.Collection == "" {

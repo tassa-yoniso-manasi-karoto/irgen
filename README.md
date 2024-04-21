@@ -10,8 +10,6 @@ The binary will parse a config.json file located in the directory where it is.
 <img src="https://github.com/tassa-yoniso-manasi-karoto/irgen/blob/main/demo/Wikipedia–Geography of Asia.webp">
 
 ### TODO
-- PUSH CARD CSS
-- test windows build
 - add doc for config.json
 - move PrefForHiRes to extractors
 - "pinned" user-defined group of high-value image that can be displayed none

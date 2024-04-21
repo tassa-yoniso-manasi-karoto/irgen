@@ -1,0 +1,29 @@
+{{#Context}}
+<table class=squel>
+    <tbody>
+        <tr ="width:100%">
+            <td class=cxtcol align=center>
+                <div class=cxt>{{Context}}</div>
+            </td>
+            <td class=else>
+                <div class=title>{{RealTitle}}{{^RealTitle}}{{Title}}{{/RealTitle}}</div>
+                <div class="ir-text">{{Text}}<br><br></div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+{{/Context}}
+
+
+{{^Context}}
+<br><table class=squel>
+    <tbody>
+        <tr ="width:100%">
+                <div class=title2>{{RealTitle}}{{^RealTitle}}{{Title}}{{/RealTitle}}</div>
+            <td class=else2>
+                <div class="ir-text">{{Text}}<br><br></div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+{{/Context}}
