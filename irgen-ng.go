@@ -255,6 +255,7 @@ type ThumbnailType struct {
 	Pass bool
 }
 
+// TODO Move this to extractors
 func (Extractor ExtractorType) PrefForHiRes(href string) string {
 	resp, err := http.Get(href)
 	check(err)
