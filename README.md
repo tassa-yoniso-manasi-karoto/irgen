@@ -52,6 +52,7 @@ _(h1, h2... are the heading tags that will appear in the raw HTML you don't need
 - **ResXMax** and **ResYMax**: on wikipedia each image is available in various resolutions and irgen will automatically download the highest quality available but you can limit the maximal resolution accepted using these values.
 
 ## TODO
+- ADD VERSIONING
 - move PrefForHiRes to extractors
 - "pinned" user-defined group of high-value image that can be displayed none
 - ankiconnect support
