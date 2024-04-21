@@ -45,14 +45,14 @@ type ArticleType struct {
 
 type NoteType struct {
 	QNode *goquery.Selection
-	ID, Title, Txt, Src string
+	ID, Title, Txt, Context string
 	Tags []string
 	hasContent bool
 }
 
 func main() {
 	log.Info().Msg("Started")
-	inFile = flag.String("i", CurrentDir+"/article.html", "file path or URL of an HTML article\n")
+	inFile = flag.String("i", CurrentDir + string(os.PathSeparator) + "article.html", "file path or URL of an HTML article\n")
 	flag.Parse()
 	Article.Name = filepath.Base((*inFile)[:len(*inFile) - len(filepath.Ext(*inFile))])
 	var outFile string
@@ -151,7 +151,7 @@ func main() {
 			Title: fmtTl(TitleStack, pref.LenStack),
 			Txt: InnerHTML(s.Nodes[0]),
 		}
-		Note.Src = Note.MkCxt(loc, TitleStack)
+		Note.Context = Note.MkCxt(loc, TitleStack)
 		// keep this after MkCxt to be able to ez check for duplicate img
 		Note.Txt = gohtml.Format(Note.Txt)
 		Notes = append(Notes, Note)
@@ -163,7 +163,7 @@ func main() {
 	defer csvout.Close()
 	defer writer.Flush()
 	for _, Note := range Notes {
-		_ = writer.Write([]string{Note.ID, Note.Title, Note.Txt, Note.Src})
+		_ = writer.Write([]string{Note.ID, Note.Title, Note.Txt, Note.Context})
 	}
 	log	.Info().Msg(fmt.Sprint(len(Notes), " Notes in total"))
 	elapsed := time.Since(launch)
@@ -212,10 +212,6 @@ func (Extractor ExtractorType) TakeImgAlong(n *goquery.Selection) {
 		imgs := n.Find("img")
 		bar := progressbar.NewOptions(imgs.Length(), progressbar.OptionSetDescription(fmt.Sprint("Downloading ",imgs.Length()," images...")))
 		imgs.Each(func(i int, s *goquery.Selection) {
-			/*src, found := s.Attr("src")
-			if !found {
-				log.Warn().Msg("Img tag without src attribute")
-			}*/
 			href, found := s.Parent().Attr("href")
 			if !found {
 				return
@@ -233,11 +229,9 @@ func (Extractor ExtractorType) TakeImgAlong(n *goquery.Selection) {
 			filename, _ := url.QueryUnescape(path.Base(href))
 			s.SetAttr("src", filename)
 			s.Unwrap()
-			//title := a.Attr("title")
-			//if strings.Contains(strings.ToLower(title), "map")
 			p := pref.Collection+filename
 			if _, err := os.Stat(p); errors.Is(err, os.ErrNotExist) {
-				log.Debug().Msg("\nDownloading https://"+strings.TrimPrefix(href, "//"))
+				//log.Debug().Msg("\nDownloading https://"+strings.TrimPrefix(href, "//"))
 				DownloadFile(p, "https://"+strings.TrimPrefix(href, "//"))
 				currentTime := time.Now().Local()
 				_ = os.Chtimes(p, currentTime, currentTime)								
