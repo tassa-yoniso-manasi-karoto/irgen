@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"strings"
 	"path/filepath"
+	
 	"github.com/rs/zerolog"
 )
 
@@ -44,4 +46,11 @@ func init() {
 	if pref.CollectionMedia == "" {
 		logger.Fatal().Msg("Images can't be imported because the path to collection has not been provided. Aborting...")
 	}
+	pref.DestDir = safe(pref.DestDir)
+	pref.CollectionMedia = safe(pref.CollectionMedia)
+}
+
+// whether path of dir is given with a final "/" should be irrelevant
+func safe(path string) string {
+	return strings.TrimSuffix(path, string(os.PathSeparator)) + string(os.PathSeparator)
 }
