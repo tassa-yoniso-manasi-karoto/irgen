@@ -11,8 +11,8 @@ import (
 )
 
 type prefType struct {
-	DestDir, Collection string
-	LenStack, ResXMax, ResYMax int
+	DestDir, CollectionMedia string
+	MaxTitles, ResXMax, ResYMax int
 	KeepListEntire,CommentsToCutpattern   bool
 	// MustMoveTxtAddendumToSrc bool
 	Fn []string
@@ -41,7 +41,7 @@ func init() {
 	if pref.DestDir == "" && filepath.IsAbs(CurrentDir) {
 		pref.DestDir = CurrentDir
 	}
-	if pref.Collection == "" {
+	if pref.CollectionMedia == "" {
 		logger.Fatal().Msg("Images can't be imported because the path to collection has not been provided. Aborting...")
 	}
 }

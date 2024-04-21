@@ -148,7 +148,7 @@ func main() {
 		Note := NoteType {
 			QNode: s,
 			ID: fmt.Sprintf("%s–%s %s", Article.Name, loc.miniStr(), fmtTl(TitleStack, -1)),
-			Title: fmtTl(TitleStack, pref.LenStack),
+			Title: fmtTl(TitleStack, pref.MaxTitles),
 			Txt: InnerHTML(s.Nodes[0]),
 		}
 		Note.Context = Note.MkCxt(loc, TitleStack)
@@ -171,7 +171,7 @@ func main() {
 }
 
 
-func DownloadFile(filepath string, url string) error {
+func DownloadFile(filepath string, url string, bar *progressbar.ProgressBar) error {
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
@@ -182,7 +182,7 @@ func DownloadFile(filepath string, url string) error {
 		return err
 	}
 	defer out.Close()
-	_, err = io.Copy(out, resp.Body)
+	_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
 	return err
 }
 
@@ -193,11 +193,11 @@ func (Extractor ExtractorType) TakeImgAlong(n *goquery.Selection) {
 		for _, file := range files {
 			for _, ext := range []string{".jpg", ".jpeg", ".png", ".tif", ".tiff", ".gif", ".svg", ".webp", ".avif"} {
 				fpath := filepath.Dir(*inFile) + "/" + file.Name()
-				_, err := os.Stat(pref.Collection + file.Name())
+				_, err := os.Stat(pref.CollectionMedia + file.Name())
 				if ext == filepath.Ext(file.Name()) && errors.Is(err, os.ErrNotExist) {
 					from, err := os.Open(fpath)
 					check(err)
-					to, err := os.OpenFile(pref.Collection + file.Name(), os.O_CREATE|os.O_WRONLY, 0644)
+					to, err := os.OpenFile(pref.CollectionMedia + file.Name(), os.O_CREATE|os.O_WRONLY, 0644)
 					check(err)
 					_, err = io.Copy(to, from)
 					check(err)
@@ -210,7 +210,10 @@ func (Extractor ExtractorType) TakeImgAlong(n *goquery.Selection) {
 		log.Info().Msg(fmt.Sprint(total, " images copied."))
 	} else {
 		imgs := n.Find("img")
-		bar := progressbar.NewOptions(imgs.Length(), progressbar.OptionSetDescription(fmt.Sprint("Downloading ",imgs.Length()," images...")))
+		bar := progressbar.DefaultBytes(
+			-1,
+			"Downloading images...",
+		)
 		imgs.Each(func(i int, s *goquery.Selection) {
 			href, found := s.Parent().Attr("href")
 			if !found {
@@ -229,14 +232,14 @@ func (Extractor ExtractorType) TakeImgAlong(n *goquery.Selection) {
 			filename, _ := url.QueryUnescape(path.Base(href))
 			s.SetAttr("src", filename)
 			s.Unwrap()
-			p := pref.Collection+filename
+			p := pref.CollectionMedia+filename
 			if _, err := os.Stat(p); errors.Is(err, os.ErrNotExist) {
 				//log.Debug().Msg("\nDownloading https://"+strings.TrimPrefix(href, "//"))
-				DownloadFile(p, "https://"+strings.TrimPrefix(href, "//"))
+				DownloadFile(p, "https://"+strings.TrimPrefix(href, "//"), bar)
 				currentTime := time.Now().Local()
 				_ = os.Chtimes(p, currentTime, currentTime)								
 			}
-			bar.Add(1)
+			//bar.Add(1)
 		})
 		fmt.Print("\n")
 	}
