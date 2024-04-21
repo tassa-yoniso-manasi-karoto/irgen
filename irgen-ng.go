@@ -192,7 +192,7 @@ func (Extractor ExtractorType) TakeImgAlong(n *goquery.Selection) {
 		var total int
 		for _, file := range files {
 			for _, ext := range []string{".jpg", ".jpeg", ".png", ".tif", ".tiff", ".gif", ".svg", ".webp", ".avif"} {
-				fpath := filepath.Dir(*inFile) + "/" + file.Name()
+				fpath := filepath.Dir(*inFile) + string(os.PathSeparator) + file.Name()
 				_, err := os.Stat(pref.CollectionMedia + file.Name())
 				if ext == filepath.Ext(file.Name()) && errors.Is(err, os.ErrNotExist) {
 					from, err := os.Open(fpath)
