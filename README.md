@@ -1,8 +1,8 @@
 # irgen
-Incremental reading card generator supporting Wikipedia &amp; local files.
+Incremental reading card generator for Anki supporting Wikipedia & local HTML files 
 
 This is a CLI tool only. At its core it just splits the HTML file using the heading tags into many notes.
-However it is capable of creating exceptionally high context notes that would otherwise be too costly timewise to make by means of gathering individually for each future note the nearby picture & table of the document according to user-defined configuration.
+However it is capable of creating exceptionally high context notes that would otherwise be too costly timewise to make by means of gathering individually for each note-to-be the surrounding pictures & tables of the document according to user-defined configuration.
 
 The binary will parse a config.json file located in the directory where it is.
 
