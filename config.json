@@ -7,11 +7,13 @@
 	"Fn": [
 		"FromSuperior",
 		"FromSuperior",
+		"FromSuperiorAndDescendants",
 		"FromSuperiorAndDescendants"
 	],
 	"FnScope": [
 		1,
 		2,
+		3,
 		10
 	]
 }

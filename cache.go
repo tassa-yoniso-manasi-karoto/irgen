@@ -100,17 +100,12 @@ func (loc Location) Stack() []*html.Node {
 	go GetParentLocs(c, loc)
 
 	for parentHeadingLoc := range(c) {
-		//fmt.Println("P=", parentHeadingLoc)
 		locData, found = DataRegister[parentHeadingLoc]
-		//if locData.Heading != nil {
-		//	fmt.Printf("%s\t", locData.Heading.Data)
-		//}
 		if found { 
 			t = locData.Heading
 			tStack = append(tStack, t)
 		}
 	}
-	//fmt.Println(loc, tStack)
 	return tStack
 }
 
@@ -118,28 +113,17 @@ func (loc Location) Stack() []*html.Node {
 // Truncating loc by x (= replacing the x last values of loc array by 0) 
 // will provide the loc (location) of the xth parent.
 func GetParentLocs(c chan Location, loc Location) {
-	var currentLvl, sum int
-	//! init: departure loc already links to a locData.Heading
-	//if loc[6] != 0 { c <- loc }
 	for i := range(loc) {
 		// start from the end of the slice ("-1" compensate the dummy at loc[0])
-		currentLvl = len(loc)-i-1
-		//fmt.Print(currentLvl)
-		
+		currentLvl := len(loc)-i-1
 		// process the truncated loc only if it is filled w/ localisation info
 		if loc[currentLvl] != 0 {
-			c <- loc //; fmt.Print(" SENT")
+			c <- loc
 			loc[currentLvl] = 0
 		}
-		
-		// check that truncated loc still contains info
-		sum = 0
-		for _, j := range(loc) {
-			sum += j
+		if loc.IsEmpty() {
+			break
 		}
-		if sum == 0 { break }
-		
-		//fmt.Print("\n")
 	}
 	close(c)
 }
