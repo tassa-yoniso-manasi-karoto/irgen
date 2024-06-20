@@ -53,7 +53,7 @@ _(h1, h2... are the heading tags that will appear in the raw HTML you don't need
 
 ## TODO
 - ADD VERSIONING
-- move PrefForHiRes to extractors
+- merge Fn and FnScope into a JSON struct
 - "pinned" user-defined group of high-value image that can be displayed none
 - ankiconnect support
 
