@@ -4,27 +4,22 @@ import (
 	"fmt"
 	"golang.org/x/net/html"
 	"io"
-	"io/ioutil"
 	"regexp"
 	"strings"
 	"time"
-	"path"
+	"path/filepath"
 	"bytes"
 	"os"
-	"path/filepath"
 	"encoding/csv"
 	"flag"
 	"net/http"
 	"net/url"
-	"errors"
-	"strconv"
 	"sort"
 	
 	"github.com/gookit/color"
 	"github.com/k0kubun/pp"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/yosssi/gohtml"
-	"github.com/schollz/progressbar/v3"
 	"github.com/rs/zerolog"
 )
 
@@ -70,7 +65,7 @@ func main() {
 	var err error
 	if filepath.IsAbs(*inFile){
 		if !canStat(*inFile) {
-			log.Error().Msg("File not found: " + *inFile)
+			log.Error().Msg("No input file specified or default file location unaccessible: " + *inFile)
 			os.Exit(1)
 		}
 		Extractor = local
@@ -107,7 +102,7 @@ func main() {
 		}
 		file, err = io.ReadAll(resp.Body)
 		check(err)
-	}	
+	}
 	launch := time.Now()
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(file))
 	check(err)
@@ -124,7 +119,7 @@ func main() {
 		return true
 	})
 	Extractor.TakeImgAlong(n)
-	// this returns InnnerHTML
+	// this returns InnerHTML
 	content, err := n.Html()
 	check(err)
 	content = "<cutpattern>" + Cut(content) + "</cutpattern>"
@@ -165,134 +160,12 @@ func main() {
 	for _, Note := range Notes {
 		_ = writer.Write([]string{Note.ID, Note.Title, Note.Txt, Note.Context})
 	}
-	log	.Info().Msg(fmt.Sprint(len(Notes), " Notes in total"))
+	log.Info().Msg(fmt.Sprint(len(Notes), " Notes in total"))
 	elapsed := time.Since(launch)
 	log.Info().Msg(fmt.Sprintf("\x1b[1;37;45mTOOK %s\x1b[0m\n", elapsed))
 }
 
 
-func DownloadFile(filepath string, url string, bar *progressbar.ProgressBar) error {
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-	_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
-	return err
-}
-
-func (Extractor ExtractorType) TakeImgAlong(n *goquery.Selection) {
-	if Extractor.Name == "local"  {
-		files, _ := ioutil.ReadDir(filepath.Dir(*inFile))
-		var total int
-		for _, file := range files {
-			for _, ext := range []string{".jpg", ".jpeg", ".png", ".tif", ".tiff", ".gif", ".svg", ".webp", ".avif"} {
-				fpath := filepath.Dir(*inFile) + string(os.PathSeparator) + file.Name()
-				_, err := os.Stat(pref.CollectionMedia + file.Name())
-				if ext == filepath.Ext(file.Name()) && errors.Is(err, os.ErrNotExist) {
-					from, err := os.Open(fpath)
-					check(err)
-					to, err := os.OpenFile(pref.CollectionMedia + file.Name(), os.O_CREATE|os.O_WRONLY, 0644)
-					check(err)
-					_, err = io.Copy(to, from)
-					check(err)
-					from.Close()
-					to.Close()
-					total += 1
-				}
-			}
-		}
-		log.Info().Msg(fmt.Sprint(total, " images copied."))
-	} else {
-		imgs := n.Find("img")
-		bar := progressbar.DefaultBytes(
-			-1,
-			"Downloading images...",
-		)
-		imgs.Each(func(i int, s *goquery.Selection) {
-			href, found := s.Parent().Attr("href")
-			if !found {
-				return
-			}
-			//pp.Println(RenderNode(s.Nodes[0]))
-			href = Extractor.PrefForHiRes(href)
-			//log.Debug().Msg("\n"+src+" →→→→→→→ "+path.Base(href))
-			s.RemoveAttr("width")
-			s.RemoveAttr("height")
-			s.RemoveAttr("srcset")
-			s.RemoveAttr("decoding")
-			s.RemoveAttr("class")
-			s.RemoveAttr("data-file-height")
-			s.RemoveAttr("data-file-width")
-			filename, _ := url.QueryUnescape(path.Base(href))
-			s.SetAttr("src", filename)
-			s.Unwrap()
-			p := pref.CollectionMedia+filename
-			if _, err := os.Stat(p); errors.Is(err, os.ErrNotExist) {
-				//log.Debug().Msg("\nDownloading https://"+strings.TrimPrefix(href, "//"))
-				DownloadFile(p, "https://"+strings.TrimPrefix(href, "//"), bar)
-				currentTime := time.Now().Local()
-				_ = os.Chtimes(p, currentTime, currentTime)								
-			}
-			//bar.Add(1)
-		})
-		fmt.Print("\n")
-	}
-}
-
-type ThumbnailType struct {
-	sort.IntSlice
-	Href string
-	X, Y int
-	Pass bool
-}
-
-// TODO Move this to extractors
-func (Extractor ExtractorType) PrefForHiRes(href string) string {
-	resp, err := http.Get(href)
-	check(err)
-	if resp.StatusCode != http.StatusOK {
-		log.Error().Str("IMG: Received response status", resp.Status).Msg("HTTP")
-	}
-	file, err := io.ReadAll(resp.Body)
-	check(err)
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(file))
-	check(err)
-	var Thumbnails []ThumbnailType
-	var xs []int
-	doc.Find("a.mw-thumbnail-link").Each(func(i int, s *goquery.Selection) {
-		href, _ := s.Attr("href")
-		Thumbnail := ThumbnailType{Href: href}
-		sz := strings.ReplaceAll(strings.TrimSuffix(s.Text(), " pixels"), ",", "")
-		xstr, ystr, _ := strings.Cut(sz, " × ")
-		x, _ := strconv.Atoi(xstr)
-		y, _ := strconv.Atoi(ystr)
-		Thumbnail.Pass = true
-		if pref.ResXMax < x {
-			Thumbnail.Pass = false
-		}
-		if pref.ResYMax < y {
-			Thumbnail.Pass = false
-		}
-		Thumbnail.X = x
-		Thumbnail.Y = y
-		xs = append(xs, x)
-		Thumbnails = append(Thumbnails, Thumbnail)
-	})
-	Rating := RatingType{sort.IntSlice(xs), Thumbnails}
-	sort.Stable(Rating)
-	for _, Thumbnail := range Thumbnails {
-		if Thumbnail.Pass {
-			href = Thumbnail.Href
-		}
-	}
-	return href
-}
 
 type RatingType struct {
 	sort.IntSlice
@@ -319,8 +192,6 @@ func fmtTl(TitleStack []*html.Node, max int) (s string) {
 	}
 	return
 }
-
-
 
 
 func Text(n *html.Node) string {
