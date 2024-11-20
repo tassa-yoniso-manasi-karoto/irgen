@@ -20,6 +20,7 @@ import (
 	
 	"github.com/schollz/progressbar/v3"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/rs/zerolog/log"
 )
 
 

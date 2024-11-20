@@ -21,17 +21,18 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/yosssi/gohtml"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 var (
 	CurrentDir string
 	ContentSelector = "body"
-	inFile *string
 	WantedTitleLen = 3
+	inFile *string
 	reCleanHTML = regexp.MustCompile(`^\s*(.*?)\s*$`)
 	Extractor ExtractorType
 	Article ArticleType
-	log = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).With().Timestamp().Logger()
+	//log = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).With().Timestamp().Logger()
 )
 
 type ArticleType struct {
@@ -45,41 +46,54 @@ type NoteType struct {
 	hasContent bool
 }
 
-func Execute() {
-	log.Info().Msg("Started")
+func init() {
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+}
+
+func CLI() {
 	inFile = flag.String("i", CurrentDir + string(os.PathSeparator) + "article.html", "file path or URL of an HTML article\n")
 	flag.Parse()
-	Article.Name = filepath.Base((*inFile)[:len(*inFile) - len(filepath.Ext(*inFile))])
+	Execute(*inFile)
+}
+
+func GUI(in string) {
+	inFile = &in
+	Execute(in)
+}
+
+func Execute(userGivenPath string) {
+	log.Info().Msg("Started")
+	Article.Name = filepath.Base((userGivenPath)[:len(userGivenPath) - len(filepath.Ext(userGivenPath))])
 	var outFile string
 	if pref.DestDir == "" {
-		outFile = strings.TrimSuffix(*inFile, filepath.Ext(*inFile)) + ".txt"
+		outFile = strings.TrimSuffix(userGivenPath, filepath.Ext(userGivenPath)) + ".txt"
 	} else {
-		outFile = pref.DestDir + strings.TrimSuffix(filepath.Base(*inFile), filepath.Ext(*inFile)) + ".txt"
+		outFile = pref.DestDir + strings.TrimSuffix(filepath.Base(userGivenPath), filepath.Ext(userGivenPath)) + ".txt"
 	}
 	log.Debug().
-		Bool("AbsPath?", filepath.IsAbs(*inFile)).
-		Bool("canStat?", canStat(*inFile)).
-		Str("path||url", *inFile).
+		Bool("AbsPath?", filepath.IsAbs(userGivenPath)).
+		Bool("canStat?", canStat(userGivenPath)).
+		Str("path||url", userGivenPath).
 		Msg("init")	
 	var file []byte
 	var err error
-	if filepath.IsAbs(*inFile){
-		if !canStat(*inFile) {
-			log.Error().Msg("No input file specified or default file location unaccessible: " + *inFile)
+	if filepath.IsAbs(userGivenPath){
+		if !canStat(userGivenPath) {
+			log.Error().Msg("No input file specified or default file location unaccessible: " + userGivenPath)
 			os.Exit(1)
 		}
 		Extractor = local
-		file, err = os.ReadFile(*inFile)
+		file, err = os.ReadFile(userGivenPath)
 		check(err)
 	} else {
 		for _, extractor := range extractors {
-			if extractor.Validator.MatchString(*inFile) {
+			if extractor.Validator.MatchString(userGivenPath) {
 				Extractor = extractor
 				if extractor.Validator.NumSubexp() > 0 {
-					Article.Lang = extractor.Validator.FindStringSubmatch(*inFile)[1]
+					Article.Lang = extractor.Validator.FindStringSubmatch(userGivenPath)[1]
 				}
 				if extractor.Validator.NumSubexp() > 1 {
-					Article.Name, _ = url.QueryUnescape(extractor.Validator.FindStringSubmatch(*inFile)[2])
+					Article.Name, _ = url.QueryUnescape(extractor.Validator.FindStringSubmatch(userGivenPath)[2])
 					Article.Name = strings.ReplaceAll(Article.Name, "_", " ")
 				}
 				outFile = fmt.Sprint(pref.DestDir, Extractor.Name, "–",Article.Name, ".txt")
@@ -93,7 +107,7 @@ func Execute() {
 		Str("Out", outFile).
 		Msg("init")
 	if Extractor.Name != "local" {
-		resp, err := http.Get(*inFile)
+		resp, err := http.Get(userGivenPath)
 		check(err)
 		if resp.StatusCode != http.StatusOK {
 			log.Error().Str("Received response status", resp.Status).Msg("HTTP")
@@ -162,7 +176,7 @@ func Execute() {
 	}
 	log.Info().Msg(fmt.Sprint(len(Notes), " Notes in total"))
 	elapsed := time.Since(launch)
-	log.Info().Msg(fmt.Sprintf("\x1b[1;37;45mTOOK %s\x1b[0m\n", elapsed))
+	log.Info().Msgf("Done in %s", elapsed)
 }
 
 
