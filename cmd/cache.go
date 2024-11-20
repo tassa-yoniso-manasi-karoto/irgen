@@ -1,5 +1,5 @@
 
-package main
+package cmd
 
 import (
 	"regexp"

@@ -24,16 +24,3 @@ require (
 	golang.org/x/term v0.19.0 // indirect
 )
 
-replace mksrc => /home/voiduser/go/src/irgen/mksrc
-
-replace deb => /home/voiduser/go/src/irgen/deb/
-
-replace find => ../find
-
-replace prefs => /home/voiduser/go/src/irgen/prefs
-
-replace cache => /home/voiduser/go/src/irgen/cache
-
-replace strconv => /home/voiduser/go/src/irgen/strconv
-
-replace utils => /home/voiduser/go/src/irgen/utils

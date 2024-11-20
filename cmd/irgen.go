@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"fmt"
@@ -45,7 +45,7 @@ type NoteType struct {
 	hasContent bool
 }
 
-func main() {
+func Execute() {
 	log.Info().Msg("Started")
 	inFile = flag.String("i", CurrentDir + string(os.PathSeparator) + "article.html", "file path or URL of an HTML article\n")
 	flag.Parse()
