@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"context"
 	"embed"
+	"flag"
+	"time"
 	
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -15,6 +17,9 @@ import (
 	
 	"github.com/tassa-yoniso-manasi-karoto/irgen/cmd"
 )
+
+//var version = "0.9.0-alpha"
+var version = "0.8.0-prerelease"
 
 //go:embed all:frontend/dist
 var assets embed.FS
@@ -44,6 +49,10 @@ func NewApp() *App {
 	return &App{}
 }
 
+func (a *App) GetVersion() string {
+	return version
+}
+
 // startup is called when the app starts
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
@@ -56,7 +65,11 @@ func (a *App) startup(ctx context.Context) {
 
 	// Configure zerolog
 	//log := zerolog.New(logWriter).With().Timestamp().Logger()
-	log.Logger = log.Output(zerolog.ConsoleWriter{NoColor: true, Out:&LogWriter{ctx: ctx}}).With().Timestamp().Logger()
+	log.Logger = log.Output(zerolog.ConsoleWriter{
+		NoColor: true,
+		Out: &LogWriter{ctx: ctx},
+		FormatTimestamp: func(i interface{}) string {return ""},
+	}).With().Logger()
 	//log.Output(&LogWriter{ctx: ctx})
 
 }
@@ -70,38 +83,36 @@ type LogWriter struct {
 func (w *LogWriter) Write(p []byte) (n int, err error) {
 	msg := LogMessage{
 		Message: string(p),
-		Time:    "", // zerolog's ConsoleWriter already includes time
+		Time:    time.Now().Format(time.TimeOnly),
 	}
-	// Emit the log message as an event
 	runtime.EventsEmit(w.ctx, "log", msg)
 	return len(p), nil
 }
 
 
-///#############################
-
-func (a *App) ProcessURL(params ProcessParams) string {
-	//time.Sleep(3 * time.Second)
-	cmd.GUI(params.URL)
-	return "SOMETHING INFORMING ABOUT THE RESULTS"
-	// Add your URL processing logic here with the additional parameters
-	/*return "Processed URL: " + params.URL + 
-		   "\nNumber of Title: " + string(params.NumberOfTitle) +
-		   "\nMax X Resolution: " + string(params.MaxXResolution) +
-		   "\nMax Y Resolution: " + string(params.MaxYResolution)*/
+func (a *App) Process(params ProcessParams) string {
+	cmd.Execute(params.URL)
+	return ""
 }
 
 
 func main() {
 	if len(os.Args) > 1 {
-		cmd.CLI()
+		inFile := flag.String("i", "", "file path or URL of an HTML article\n")
+		wantVersion := flag.Bool("version", false, "print program version and exit")
+		flag.Parse()
+		if *wantVersion {
+			fmt.Println(version)
+			return
+		}
+		cmd.Execute(*inFile)
 		return
 	}
 	app := NewApp()
 	err := wails.Run(&options.App{
 		Title:	 "IRGen",
 		Width:  750,
-		Height: 720,
+		Height: 635,
 		MinWidth:  750,
 		MinHeight: 300,
 		MaxWidth:  750,

@@ -11,7 +11,6 @@ import (
 	"bytes"
 	"os"
 	"encoding/csv"
-	"flag"
 	"net/http"
 	"net/url"
 	"sort"
@@ -28,7 +27,7 @@ var (
 	CurrentDir string
 	ContentSelector = "body"
 	WantedTitleLen = 3
-	inFile *string
+	inFile string
 	reCleanHTML = regexp.MustCompile(`^\s*(.*?)\s*$`)
 	Extractor ExtractorType
 	Article ArticleType
@@ -47,22 +46,22 @@ type NoteType struct {
 }
 
 func init() {
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 }
 
-func CLI() {
-	inFile = flag.String("i", CurrentDir + string(os.PathSeparator) + "article.html", "file path or URL of an HTML article\n")
-	flag.Parse()
-	Execute(*inFile)
-}
+/* TODO
+FIX CORE: "1 Notes in total"????
+colorize debug/info/warn.. in svelte
+overhaul logging
+*/
 
-func GUI(in string) {
-	inFile = &in
-	Execute(in)
-}
 
 func Execute(userGivenPath string) {
-	log.Info().Msg("Started")
+	log.Debug().Msg("Started")
+	if pref.CollectionMedia == "" {
+		log.Error().Msg("Images can't be imported because the path to collection has not been provided.")
+	}
+	inFile = userGivenPath
 	Article.Name = filepath.Base((userGivenPath)[:len(userGivenPath) - len(filepath.Ext(userGivenPath))])
 	var outFile string
 	if pref.DestDir == "" {
