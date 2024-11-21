@@ -43,9 +43,6 @@ func init() {
 	if pref.DestDir == "" && filepath.IsAbs(CurrentDir) {
 		pref.DestDir = CurrentDir
 	}
-	if pref.CollectionMedia == "" {
-		logger.Fatal().Msg("Images can't be imported because the path to collection has not been provided. Aborting...")
-	}
 	pref.DestDir = safe(pref.DestDir)
 	pref.CollectionMedia = safe(pref.CollectionMedia)
 }

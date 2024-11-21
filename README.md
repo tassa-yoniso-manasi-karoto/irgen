@@ -1,13 +1,12 @@
-# irgen
-***Project status: pre-release***. Incremental reading card generator for Anki supporting Wikipedia & local HTML files 
+***Project status: pre-release***. Incremental reading card generator for Anki supporting Wikipedia & local HTML files
 
 At its core it just splits the HTML file using the heading tags into many notes.
 
 However it is capable of creating exceptionally high context notes that would otherwise be too costly timewise to make by means of gathering individually for each note-to-be the surrounding pictures & tables of the document according to user-defined configuration.
 
 
-<img src="https://github.com/tassa-yoniso-manasi-karoto/irgen/blob/main/demo/Osteo Forearm.webp">
-<img src="https://github.com/tassa-yoniso-manasi-karoto/irgen/blob/main/demo/Wikipedia–Geography of Asia.webp">
+<img src="https://github.com/tassa-yoniso-manasi-karoto/irgen/blob/main/demo/osteo_forearm.webp">
+<img src="https://github.com/tassa-yoniso-manasi-karoto/irgen/blob/main/demo/wiki_geo_asia.webp">
 
 ## How to use
 ### Prerequisites
@@ -52,13 +51,12 @@ _(h1, h2... are the heading tags that will appear in the raw HTML you don't need
 - **ResXMax** and **ResYMax**: on wikipedia each image is available in various resolutions and irgen will automatically download the highest quality available but you can limit the maximal resolution accepted using these values.
 
 ## TODO
-- ADD VERSIONING
 - merge Fn and FnScope into a JSON struct
 - "pinned" user-defined group of high-value image that can be displayed none
 - ankiconnect support
 
 ## About
-I originally started this project many, many years ago. It lived first as a shell script, then as python script, then as a very poorly written Go codebase. I am providing it here after a near complete rewrite for public interest.
+I originally started this project many, many years ago. It lived first as a shell script, then as python script, then as a very poorly written Go codebase. I am providing it here after a near complete rewrite for public interest. (edit: the code is still pretty bad tbh)
 
 
 

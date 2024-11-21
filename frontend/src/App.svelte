@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
     import LogViewer from './LogViewer.svelte';
     import ThemeToggle from './ThemeToggle.svelte';
     
@@ -6,9 +7,15 @@
     let numberOfTitle = 3;
     let maxXResolution = 1920;
     let maxYResolution = 1080;
-    let result = '';
+    let status = '';
     let isProcessing = false;
     let isDark = true; // Default to dark mode
+    let version = "0.0.0";
+    
+    
+    onMount(async () => {
+        version = await window.go.main.App.GetVersion();
+    });
     
     async function processURL() {
         if (!url) {
@@ -36,18 +43,17 @@
                 maxYResolution: parseInt(maxYResolution)
             };
             
-            result = await window.go.main.App.ProcessURL(params);
+            status = await window.go.main.App.Process(params);
         } catch (error) {
             console.error('Error processing URL:', error);
-            result = 'Error processing URL';
+            status = 'Error processing URL';
         } finally {
             isProcessing = false;
         }
     }
 </script>
-
-<!-- Theme toggle moved outside the main container -->
 <div class="theme-toggle-wrapper">
+    <span class="version">irgen {version}</span>
     <ThemeToggle bind:isDark />
 </div>
 
@@ -108,9 +114,9 @@
         
         <LogViewer />
 
-        {#if result}
-            <div class="result">
-                {result}
+        {#if status}
+            <div class="status">
+                {status}
             </div>
         {/if}
     </main>
@@ -263,7 +269,7 @@
         cursor: not-allowed;
     }
 
-    .result {
+    .status {
         padding: 1rem;
         background-color: var(--container-bg);
         border-radius: 4px;
@@ -290,5 +296,15 @@
 
     button:active:not(:disabled) {
         transform: scale(0.98);
+    }
+    
+    .version {
+        position: fixed;
+        top: 0.2rem;
+        right: 1.7rem;
+        z-index: 0;
+        padding: 0rem;
+        font-size: 0.6rem;
+        color: gray;
     }
 </style>
