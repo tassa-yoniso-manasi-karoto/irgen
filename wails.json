@@ -3,8 +3,8 @@
   "name": "irgen",
   "outputfilename": "irgen",
   "frontend:install": "npm install",
-  "frontend:build": "npm run build",
-  "frontend:dev:watcher": "npm run dev",
+  "frontend:build": "npm --prefix ../ui/ run build",
+  "frontend:dev:watcher": "npm --prefix ../ui/ run dev",
   "frontend:dev:serverUrl": "auto",
   "author": {
     "name": "tassa-yoniso-manasi-karoto"
