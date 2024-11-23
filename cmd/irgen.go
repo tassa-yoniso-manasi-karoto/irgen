@@ -50,6 +50,8 @@ func init() {
 }
 
 /* TODO
+use koanf + urfave/cli
+
 FIX CORE: "1 Notes in total"????
 CONNECT THE 3 UI FIELDS TO THE BACKEND
 colorize debug/info/warn.. in svelte
@@ -156,7 +158,7 @@ func Execute(userGivenPath string) {
 		}
 		Note := NoteType {
 			QNode: s,
-			ID: fmt.Sprintf("%s–%s %s", Article.Name, loc.miniStr(), fmtTl(TitleStack, -1)),
+			ID: fmt.Sprintf("%s_%s %s", Article.Name, loc.miniStr(), fmtTl(TitleStack, -1)),
 			Title: fmtTl(TitleStack, pref.MaxTitles),
 			Txt: InnerHTML(s.Nodes[0]),
 		}
