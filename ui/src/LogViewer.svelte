@@ -7,6 +7,19 @@
   let autoScroll = true;
   let isUserScrolling = false;
   
+  function getLevelClass(level) {
+    const levelMap = {
+      'DEBUG': 'debug',
+      'INFO': 'info',
+      'WARN': 'warn',
+      'ERROR': 'error',
+      'FATAL': 'fatal',
+      'PANIC': 'panic',
+      'TRACE': 'trace'
+    };
+    return levelMap[level] || 'info';
+  }
+  
   onMount(() => {
     EventsOn("log", (log) => {
       logs = [...logs, log];
@@ -57,8 +70,9 @@
     on:scroll={handleScroll}
   >
     {#each logs as log}
-      <div class="log-entry {log.level.toLowerCase()}">
+      <div class="log-entry">
         <span class="time">{log.time}</span>
+        <span class="level {getLevelClass(log.level)}">{log.level}</span>
         <span class="message">{log.message}</span>
       </div>
     {/each}
@@ -69,7 +83,7 @@
   .log-viewer {
     display: flex;
     flex-direction: column;
-    height: 300px; /* Fixed height */
+    height: 300px;
     min-height: 200px;
     max-height: 500px;
     background: #1e1e1e;
@@ -107,18 +121,37 @@
     white-space: pre-wrap;
     word-wrap: break-word;
     line-height: 1.4;
+    display: flex;
+    align-items: baseline;
   }
 
   .time {
     color: #888;
     margin-right: 8px;
     font-size: 11px;
+    flex-shrink: 0;
   }
 
+  .level {
+    font-weight: bold;
+    margin-right: 8px;
+    flex-shrink: 0;
+    min-width: 40px;
+  }
+
+  .message {
+    flex-grow: 1;
+    color: #d4d4d4;
+  }
+
+  /* Updated log level colors with better contrast */
   .debug { color: #7cafc2; }
   .info { color: #99c794; }
   .warn { color: #fac863; }
   .error { color: #ec5f67; }
+  .fatal { color: #ff8080; }
+  .panic { color: #ff6b6b; }
+  .trace { color: #c792ea; }
 
   button {
     padding: 2px 8px;

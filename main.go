@@ -19,7 +19,7 @@ import (
 )
 
 //var version = "0.9.0-alpha"
-var version = "0.8.0-prerelease"
+var version = "0.8.1-prerelease"
 
 //go:embed all:frontend/dist
 var assets embed.FS
@@ -31,20 +31,16 @@ type ProcessParams struct {
 	MaxYResolution int	`json:"maxYResolution"`
 }
 
-
-// LogMessage represents a structured log message
 type LogMessage struct {
 	Level   string `json:"level"`
 	Message string `json:"message"`
 	Time    string `json:"time"`
 }
 
-// App struct
 type App struct {
 	ctx context.Context
 }
 
-// NewApp creates a new App application struct
 func NewApp() *App {
 	return &App{}
 }
@@ -53,24 +49,13 @@ func (a *App) GetVersion() string {
 	return version
 }
 
-// startup is called when the app starts
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	
-	// Create custom writer for zerolog
-	/*logWriter := zerolog.ConsoleWriter{
-		Out:        &LogWriter{app: a},
-		TimeFormat: "15:04:05",
-	}*/
-
-	// Configure zerolog
-	//log := zerolog.New(logWriter).With().Timestamp().Logger()
 	log.Logger = log.Output(zerolog.ConsoleWriter{
 		NoColor: true,
 		Out: &LogWriter{ctx: ctx},
 		FormatTimestamp: func(i interface{}) string {return ""},
 	}).With().Logger()
-	//log.Output(&LogWriter{ctx: ctx})
 
 }
 
@@ -79,16 +64,47 @@ type LogWriter struct {
 	ctx context.Context
 }
 
-// Write implements io.Writer
-func (w *LogWriter) Write(p []byte) (n int, err error) {
-	msg := LogMessage{
-		Message: string(p),
-		Time:    time.Now().Format(time.TimeOnly),
-	}
-	runtime.EventsEmit(w.ctx, "log", msg)
-	return len(p), nil
+func detectLogLevel(msg string) (level, cleanMsg string) {
+    levels := map[string]string{
+        "DBG": "DEBUG",
+        "INF": "INFO",
+        "WRN": "WARN",
+        "ERR": "ERROR",
+        "FTL": "FATAL",
+        "PNC": "PANIC",
+        "TRC": "TRACE",
+    }
+    
+    // Check if message starts with a level prefix
+    if len(msg) >= 3 {
+        prefix := msg[:3]
+        if level, exists := levels[prefix]; exists {
+            // Remove the level prefix and any leading spaces
+            cleanMsg := msg[3:]
+            if len(cleanMsg) > 0 && cleanMsg[0] == ' ' {
+                cleanMsg = cleanMsg[1:]
+            }
+            return level, cleanMsg
+        }
+    }
+    
+    return "---", msg
 }
 
+// Write implements io.Writer
+func (w *LogWriter) Write(p []byte) (n int, err error) {
+    rawMsg := string(p)
+    level, cleanMsg := detectLogLevel(rawMsg)
+    
+    msg := LogMessage{
+        Level:   level,
+        Message: cleanMsg,
+        Time:    time.Now().Format(time.TimeOnly),
+    }
+    
+    runtime.EventsEmit(w.ctx, "log", msg)
+    return len(p), nil
+}
 
 func (a *App) Process(params ProcessParams) string {
 	cmd.Execute(params.URL)
