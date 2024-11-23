@@ -50,11 +50,7 @@ func init() {
 }
 
 /* TODO
-use koanf + urfave/cli
-
 FIX CORE: "1 Notes in total"????
-CONNECT THE 3 UI FIELDS TO THE BACKEND
-colorize debug/info/warn.. in svelte
 overhaul logging
 */
 
