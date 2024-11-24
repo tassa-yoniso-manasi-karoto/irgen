@@ -15,12 +15,12 @@ import (
 	"net/url"
 	"sort"
 	
+	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/meta"
+	
 	"github.com/gookit/color"
 	"github.com/k0kubun/pp"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/yosssi/gohtml"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -31,7 +31,6 @@ var (
 	reCleanHTML = regexp.MustCompile(`^\s*(.*?)\s*$`)
 	Extractor ExtractorType
 	Article ArticleType
-	//log = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).With().Timestamp().Logger()
 )
 
 type ArticleType struct {
@@ -45,9 +44,6 @@ type NoteType struct {
 	hasContent bool
 }
 
-func init() {
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-}
 
 /* TODO
 FIX CORE: "1 Notes in total"????
@@ -55,10 +51,11 @@ overhaul logging
 */
 
 
-func Execute(userGivenPath string) {
-	log.Debug().Msg("Started")
+func Execute(m *meta.Meta) {
+	userGivenPath := m.Targ
+	m.Log.Debug().Msg("Started")
 	if pref.CollectionMedia == "" {
-		log.Error().Msg("Images can't be imported because the path to collection has not been provided.")
+		m.Log.Error().Msg("Images can't be imported because the path to collection has not been provided.")
 	}
 	inFile = userGivenPath
 	Article.Name = filepath.Base((userGivenPath)[:len(userGivenPath) - len(filepath.Ext(userGivenPath))])
@@ -68,16 +65,16 @@ func Execute(userGivenPath string) {
 	} else {
 		outFile = pref.DestDir + strings.TrimSuffix(filepath.Base(userGivenPath), filepath.Ext(userGivenPath)) + ".txt"
 	}
-	log.Debug().
+	m.Log.Debug().
 		Bool("AbsPath?", filepath.IsAbs(userGivenPath)).
 		Bool("canStat?", canStat(userGivenPath)).
 		Str("path||url", userGivenPath).
 		Msg("init")	
 	var file []byte
 	var err error
-	if filepath.IsAbs(userGivenPath){
+	if filepath.IsAbs(userGivenPath) {
 		if !canStat(userGivenPath) {
-			log.Error().Msg("No input file specified or default file location unaccessible: " + userGivenPath)
+			m.Log.Error().Msg("No input file specified or default file location unaccessible: " + userGivenPath)
 			os.Exit(1)
 		}
 		Extractor = local
@@ -99,18 +96,20 @@ func Execute(userGivenPath string) {
 			}
 		}
 	}
-	log.Info().
+	m.Log.Info().
 		Str("source", Extractor.Name).
 		Str("lang", Article.Lang).
 		Str("Out", outFile).
 		Msg("init")
 	if Extractor.Name != "local" {
 		resp, err := http.Get(userGivenPath)
+		pp.Println(userGivenPath)
+		pp.Println(err)
 		check(err)
 		if resp.StatusCode != http.StatusOK {
-			log.Error().Str("Received response status", resp.Status).Msg("HTTP")
+			m.Log.Error().Str("Received response status", resp.Status).Msg("HTTP")
 		} else {
-			log.Info().Str("Received response status", resp.Status).Msg("HTTP")
+			m.Log.Info().Str("Received response status", resp.Status).Msg("HTTP")
 		}
 		file, err = io.ReadAll(resp.Body)
 		check(err)
@@ -172,9 +171,9 @@ func Execute(userGivenPath string) {
 	for _, Note := range Notes {
 		_ = writer.Write([]string{Note.ID, Note.Title, Note.Txt, Note.Context})
 	}
-	log.Info().Msg(fmt.Sprint(len(Notes), " Notes in total"))
+	m.Log.Info().Msg(fmt.Sprint(len(Notes), " Notes in total"))
 	elapsed := time.Since(launch)
-	log.Info().Msgf("Done in %s", elapsed)
+	m.Log.Info().Msgf("Done in %s", elapsed)
 }
 
 
