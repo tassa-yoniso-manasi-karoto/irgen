@@ -14,7 +14,7 @@
     
     
     onMount(async () => {
-        version = await window.go.main.App.GetVersion();
+        version = await window.go.gui.App.GetVersion();
     });
     
     async function processURL() {
@@ -43,7 +43,7 @@
                 maxYResolution: parseInt(maxYResolution)
             };
             
-            status = await window.go.main.App.Process(params);
+            status = await window.go.gui.App.Process(params);
         } catch (error) {
             console.error('Error processing URL:', error);
             status = 'Error processing URL';
