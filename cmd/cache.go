@@ -26,9 +26,9 @@ After the 5th <h1> of the doc, 2th <h2> of this <h1>, 1th <h3> of this
 The first element, located at [0], is a purposeless dummy, that
 allows the value of the headings levels (e.g. <h1>) to be aligned 
 with their respectives index values in the loc array (e.g. loc[1]).
-when it comments-cuts are implemented back several card can be created from 
-the same loc and idx 0 will serve the purpose of keeping track of the nbr of
-the current of card.
+when comments-cuts (on top of currently existing heading-cuts) are implemented (back)
+several cards can be created from the same loc and this idx 0 will serve the
+purpose of keeping track of the nbr of the current of card.
 */
 
 type LocationData struct {
