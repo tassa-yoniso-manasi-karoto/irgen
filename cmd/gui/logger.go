@@ -3,6 +3,7 @@ package gui
 import (
 	"context"
 	"time"
+	"os"
 
 	"github.com/rs/zerolog"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -18,9 +19,14 @@ type LogWriter struct {
 	ctx context.Context
 }
 
+
 func setupLogger(ctx context.Context) zerolog.Logger {
+	multiWriter := zerolog.MultiLevelWriter(
+		&LogWriter{ctx: ctx},
+		os.Stderr,
+	)
 	return zerolog.New(zerolog.ConsoleWriter{
-		Out:			&LogWriter{ctx: ctx},
+		Out:			multiWriter,
 		NoColor:		true,
 		FormatTimestamp: 	func(i interface{}) string { return "" },
 	}).With().Logger()

@@ -12,6 +12,8 @@ import (
 	"github.com/k0kubun/pp"
 	"github.com/gookit/color"
 	"github.com/rs/zerolog"
+	
+	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/meta"
 )
 
 var (
@@ -34,7 +36,7 @@ type Capillary func(NoteType, []*html.Node, []string, string, int) (ObjectSlice 
 // TODO func MoveTxtAddendumToSrc(n *html.Node, TXT string) (string, SRC string){
 
 
-func (Note NoteType) MkCxt(loc Location, tStack []*html.Node/*, tRefStack []string*/) (src string) {
+func (Note NoteType) MkCxt(m *meta.Meta, loc Location, tStack []*html.Node/*, tRefStack []string*/) (src string) {
 // in some books headings may contain direct reference to a pic / table,
 // tRefStack should contain these from Preprocess but the corresponding Capillary hasn't been rewritten atm
 	var tRefStack []string 
@@ -42,8 +44,8 @@ func (Note NoteType) MkCxt(loc Location, tStack []*html.Node/*, tRefStack []stri
 	if loc.IsEmpty() {
 		return
 	}
-	for num, fstr := range(pref.Fn) {
-		for _, obj := range Note.ObjProvider(num, fstr, loc, tStack, tRefStack) {
+	for num, fstr := range(m.Config.Functions) {
+		for _, obj := range Note.ObjProvider(num, m.Config.FunctionsScopes[num], fstr, loc, tStack, tRefStack) {
 			main, _ := goquery.OuterHtml(obj.Selec)
 			if !strings.Contains(Note.Txt, main) && !strings.Contains(src, main) {
 				src += obj.Fmt()
@@ -55,14 +57,13 @@ func (Note NoteType) MkCxt(loc Location, tStack []*html.Node/*, tRefStack []stri
 
 
 // num = func number (position) in Fn
-func (Note NoteType) ObjProvider(num int, fstr string, loc Location, tStack []*html.Node, tRefStack []string) (ObjectSlice []ObjectT) {
+func (Note NoteType) ObjProvider(num, scope int, fstr string, loc Location, tStack []*html.Node, tRefStack []string) (ObjectSlice []ObjectT) {
 	if DataRegister[loc].ShrdObjectSlices[num] == nil {
 		// load the func of type "Capillary" and its scope of
 		// execution (target heading level)
 		f, ok := mapfunc[fstr]; if ok == false {
 			panic(fmt.Sprintf("Unknown Capillary: \"%s\"\n", fstr))
 		}
-		scope := pref.FnScope[num]
 		
 		// get object from that func
 		ObjectSlice = f(Note, tStack, tRefStack, fstr, scope)
@@ -184,7 +185,7 @@ func placeholder2() {
 	pp.Println("𝓯*** 𝔂𝓸𝓾 𝓬𝓸𝓶𝓹𝓲𝓵𝓮𝓻")
 }
 
-
+// having inferior numbered headings as superior in importance is highly confusing, hence this
 func IsEqualOrMoreImportantHeading(n *html.Node, x int) (b bool) {
 	y, err := strconv.Atoi(n.Data[1:])
 	// if the number of the heading user-provided is 0, treat it as

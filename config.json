@@ -1,19 +1,8 @@
 {
-	"CollectionMedia": "",
-	"DestDir": "",
-	"MaxTitles": 3,
-	"ResXMax": 1920,
-	"ResYMax": 1080,
-	"Fn": [
-		"FromSuperior",
-		"FromSuperior",
-		"FromSuperiorAndDescendants",
-		"FromSuperiorAndDescendants"
-	],
-	"FnScope": [
-		1,
-		2,
-		3,
-		10
-	]
+	"collectionMedia": "",
+	"destDir": "",
+	"maxTitles": 3,
+	"resXMax": 1920,
+	"resYMax": 1080,
+	"functions": "FromSuperior=1 FromSuperior=2 FromSuperiorAndDescendants=3 FromSuperiorAndDescendants=10"
 }

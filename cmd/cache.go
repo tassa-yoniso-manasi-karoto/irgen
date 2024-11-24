@@ -9,6 +9,8 @@ import (
 	"golang.org/x/net/html"
 	
 	"github.com/PuerkitoBio/goquery"
+	
+	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/meta"
 )
 
 
@@ -45,7 +47,7 @@ var (
 )
 
 
-func Preprocess(doc *goquery.Document) {
+func Preprocess(m *meta.Meta, doc *goquery.Document) {
 	var (
 		currentLoc = new(Location)
 		reHeading = regexp.MustCompile(`h[0-6]`)
@@ -72,7 +74,7 @@ func Preprocess(doc *goquery.Document) {
 			}
 			// then update its data and link them in the DataRegister for later
 			//! be aware ShrdObjects is used only internally and has no dummy at 0
-			ObjectSlices := make([][]ObjectT, len(pref.Fn))
+			ObjectSlices := make([][]ObjectT, len(m.Config.Functions))
 			DataRegister[*currentLoc] = LocationData{n, ObjectSlices}
 		} else if n.Data == "cutpattern" {
 			LocRegister[n] = *currentLoc
