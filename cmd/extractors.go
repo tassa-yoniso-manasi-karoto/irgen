@@ -21,6 +21,8 @@ import (
 	"github.com/schollz/progressbar/v3"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/rs/zerolog/log"
+	
+	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/meta"
 )
 
 
@@ -29,7 +31,7 @@ type ExtractorType struct {
 	Name, ContentSelector   string
 	Clean                   func(*goquery.Document, string)
 	MustSkip                func([]*html.Node) bool
-	IMGProcessor		func(n *goquery.Selection)
+	IMGProcessor		func(*meta.Meta, *goquery.Selection)
 }
 
 type ThumbnailType struct {
@@ -78,7 +80,7 @@ var wiki = ExtractorType{
 		}
 		return false
 	},
-	IMGProcessor: func(n *goquery.Selection) {
+	IMGProcessor: func(m *meta.Meta, n *goquery.Selection) {
 		imgs := n.Find("img")
 		bar := progressbar.DefaultBytes(
 			-1,
@@ -90,7 +92,7 @@ var wiki = ExtractorType{
 				return
 			}
 			//pp.Println(RenderNode(s.Nodes[0]))
-			href = wikiPrefForHiRes(href)
+			href = wikiPrefForHiRes(m, href)
 			//log.Debug().Msg("\n"+src+" →→→→→→→ "+path.Base(href))
 			s.RemoveAttr("width")
 			s.RemoveAttr("height")
@@ -102,13 +104,14 @@ var wiki = ExtractorType{
 			filename, _ := url.QueryUnescape(path.Base(href))
 			s.SetAttr("src", filename)
 			s.Unwrap()
-			p := pref.CollectionMedia+filename
+			p := m.Config.CollectionMedia+filename
 			if _, err := os.Stat(p); errors.Is(err, os.ErrNotExist) {
 				//log.Debug().Msg("\nDownloading https://"+strings.TrimPrefix(href, "//"))
 				DownloadFile(p, "https://"+strings.TrimPrefix(href, "//"), bar)
 				currentTime := time.Now().Local()
 				_ = os.Chtimes(p, currentTime, currentTime)
 			}
+			// TODO rework due to GUI
 			bar.Add(1)
 		})
 		fmt.Print("\n")
@@ -117,21 +120,27 @@ var wiki = ExtractorType{
 
 
 
-func (Extractor ExtractorType) TakeImgAlong(n *goquery.Selection) {
+func (Extractor ExtractorType) TakeImgAlong(m *meta.Meta, n *goquery.Selection) {
 	if Extractor.Name == "local"  {
 		files, _ := ioutil.ReadDir(filepath.Dir(inFile))
 		var total int
 		for _, file := range files {
 			for _, ext := range []string{".jpg", ".jpeg", ".png", ".tif", ".tiff", ".gif", ".svg", ".webp", ".avif"} {
 				fpath := filepath.Dir(inFile) + string(os.PathSeparator) + file.Name()
-				_, err := os.Stat(pref.CollectionMedia + file.Name())
+				_, err := os.Stat(m.Config.CollectionMedia + file.Name())
 				if ext == filepath.Ext(file.Name()) && errors.Is(err, os.ErrNotExist) {
 					from, err := os.Open(fpath)
-					check(err)
-					to, err := os.OpenFile(pref.CollectionMedia + file.Name(), os.O_CREATE|os.O_WRONLY, 0644)
-					check(err)
+					if err != nil {
+						m.Log.Error().Err(err).Str("fpath", fpath).Msg("can't read img to copy")
+					}
+					to, err := os.OpenFile(m.Config.CollectionMedia + file.Name(), os.O_CREATE|os.O_WRONLY, 0644)
+					if err != nil {
+						m.Log.Error().Err(err).Str("fpath", fpath).Msg("can't access destination where img must be copied")
+					}
 					_, err = io.Copy(to, from)
-					check(err)
+					if err != nil {
+						m.Log.Error().Err(err).Str("fpath", fpath).Msg("file copying error")
+					}
 					from.Close()
 					to.Close()
 					total += 1
@@ -140,21 +149,27 @@ func (Extractor ExtractorType) TakeImgAlong(n *goquery.Selection) {
 		}
 		log.Info().Msg(fmt.Sprint(total, " images copied."))
 	} else {
-		Extractor.IMGProcessor(n)
+		Extractor.IMGProcessor(m, n)
 	}
 }
 
 
-func wikiPrefForHiRes(href string) string {
+func wikiPrefForHiRes(m *meta.Meta, href string) string {
 	resp, err := http.Get(href)
-	check(err)
+	if err != nil {
+		m.Log.Error().Err(err).Str("href", href).Msg("error during GET request to img")
+	}
 	if resp.StatusCode != http.StatusOK {
-		log.Error().Str("IMG: Received response status", resp.Status).Msg("HTTP")
+		log.Error().Str("HTTP status code", resp.Status).Msg("")
 	}
 	file, err := io.ReadAll(resp.Body)
-	check(err)
+	if err != nil {
+		m.Log.Error().Err(err).Str("href", href).Msg("error ready body response")
+	}
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(file))
-	check(err)
+	if err != nil {
+		m.Log.Fatal().Err(err).Msg("couldn't prepare the image-containing wikipage for parsing")
+	}
 	var Thumbnails []ThumbnailType
 	var xs []int
 	doc.Find("a.mw-thumbnail-link").Each(func(i int, s *goquery.Selection) {
@@ -165,10 +180,10 @@ func wikiPrefForHiRes(href string) string {
 		x, _ := strconv.Atoi(xstr)
 		y, _ := strconv.Atoi(ystr)
 		Thumbnail.Pass = true
-		if pref.ResXMax < x {
+		if m.Config.ResXMax < x {
 			Thumbnail.Pass = false
 		}
-		if pref.ResYMax < y {
+		if m.Config.ResYMax < y {
 			Thumbnail.Pass = false
 		}
 		Thumbnail.X = x

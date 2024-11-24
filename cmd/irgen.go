@@ -46,24 +46,29 @@ type NoteType struct {
 
 
 /* TODO
+mv /cmd to /internal
+handle progress bar in svelte for image downloading
+split Execute func below
+
+
 FIX CORE: "1 Notes in total"????
-overhaul logging
 */
 
 
 func Execute(m *meta.Meta) {
+	m.LogConfig("config state at execution")
 	userGivenPath := m.Targ
 	m.Log.Debug().Msg("Execution started")
-	if pref.CollectionMedia == "" {
-		m.Log.Error().Msg("Images can't be imported because the path to collection has not been provided.")
+	if m.Config.CollectionMedia == "" {
+		m.Log.Error().Msg("Images can't be automatically imported because the path to collection.media has not been provided.")
 	}
 	inFile = userGivenPath
 	Article.Name = filepath.Base((userGivenPath)[:len(userGivenPath) - len(filepath.Ext(userGivenPath))])
 	var outFile string
-	if pref.DestDir == "" {
+	if m.Config.DestDir == "" {
 		outFile = strings.TrimSuffix(userGivenPath, filepath.Ext(userGivenPath)) + ".txt"
 	} else {
-		outFile = pref.DestDir + strings.TrimSuffix(filepath.Base(userGivenPath), filepath.Ext(userGivenPath)) + ".txt"
+		outFile = m.Config.DestDir + strings.TrimSuffix(filepath.Base(userGivenPath), filepath.Ext(userGivenPath)) + ".txt"
 	}
 	m.Log.Debug().
 		Bool("AbsPath?", filepath.IsAbs(userGivenPath)).
@@ -78,7 +83,9 @@ func Execute(m *meta.Meta) {
 		}
 		Extractor = local
 		file, err = os.ReadFile(userGivenPath)
-		m.Log.Fatal().Err(err).Msg("can stat but not read specified input file, check permissions")
+		if err != nil {
+			m.Log.Fatal().Err(err).Msg("can stat but not read specified input file, check permissions")
+		}
 	} else {
 		for _, extractor := range extractors {
 			if extractor.Validator.MatchString(userGivenPath) {
@@ -90,7 +97,7 @@ func Execute(m *meta.Meta) {
 					Article.Name, _ = url.QueryUnescape(extractor.Validator.FindStringSubmatch(userGivenPath)[2])
 					Article.Name = strings.ReplaceAll(Article.Name, "_", " ")
 				}
-				outFile = fmt.Sprint(pref.DestDir, Extractor.Name, "–",Article.Name, ".txt")
+				outFile = fmt.Sprint(m.Config.DestDir, Extractor.Name, "–",Article.Name, ".txt")
 				break
 			}
 		}
@@ -102,18 +109,24 @@ func Execute(m *meta.Meta) {
 		Msg("init")
 	if Extractor.Name != "local" {
 		resp, err := http.Get(userGivenPath)
-		m.Log.Fatal().Err(err).Msg("couldn't access URL")
 		if resp.StatusCode != http.StatusOK {
 			m.Log.Error().Str("Received response status", resp.Status).Msg("HTTP")
 		} else {
 			m.Log.Info().Str("Received response status", resp.Status).Msg("HTTP")
 		}
+		if err != nil {
+			m.Log.Fatal().Err(err).Msg("couldn't access URL")
+		}
 		file, err = io.ReadAll(resp.Body)
-		m.Log.Fatal().Err(err).Msg("reading retrieved data failed")
+		if err != nil {
+			m.Log.Fatal().Err(err).Msg("reading retrieved data failed")
+		}
 	}
 	launch := time.Now()
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(file))
-	m.Log.Fatal().Err(err).Msg("couldn't prepare the document for parsing")
+	if err != nil {
+		m.Log.Fatal().Err(err).Msg("couldn't prepare the document for parsing")
+	}
 	Extractor.Clean(doc, Article.Lang)
 	n := doc.Find(Extractor.ContentSelector)
 	// drag the headings up until they are direct children of the content-containing tag
@@ -126,14 +139,18 @@ func Execute(m *meta.Meta) {
 		s.ReplaceWithSelection(h)
 		return true
 	})
-	Extractor.TakeImgAlong(n)
+	Extractor.TakeImgAlong(m, n)
 	// this returns InnerHTML
 	content, err := n.Html()
-	m.Log.Fatal().Err(err).Msg("couldn't access HTML content of file")
+	if err != nil {
+		m.Log.Fatal().Err(err).Msg("couldn't access HTML content of file")
+	}
 	content = "<cutpattern>" + Cut(content) + "</cutpattern>"
 	doc, err = goquery.NewDocumentFromReader(strings.NewReader(content))
-	m.Log.Fatal().Err(err).Msg("couldn't prepare the document for 2nd parsing")
-	Preprocess(doc)
+	if err != nil {
+		m.Log.Fatal().Err(err).Msg("couldn't prepare the document for 2nd parsing")
+	}
+	Preprocess(m, doc)
 	var Notes []NoteType
 	doc.Find("cutpattern").Each(func(i int, s *goquery.Selection) {
 		node := s.Nodes[0]
@@ -142,7 +159,9 @@ func Execute(m *meta.Meta) {
 		}
 		loc, ok := LocRegister[node]
 		if !ok {
-			fmt.Println("LOC NOT FOUND for", node.Data, stringCapLen(InnerHTML(node), 200))
+			m.Log.Error().
+				Str("sample", stringCapLen(InnerHTML(node), 200)).
+				Msg("loc not found for node " + node.Data)
 		}
 		TitleStack := loc.Stack()
 		if len(TitleStack) > 1 && Extractor.MustSkip(TitleStack) {
@@ -151,16 +170,18 @@ func Execute(m *meta.Meta) {
 		Note := NoteType {
 			QNode: s,
 			ID: fmt.Sprintf("%s_%s %s", Article.Name, loc.miniStr(), fmtTl(TitleStack, -1)),
-			Title: fmtTl(TitleStack, pref.MaxTitles),
+			Title: fmtTl(TitleStack, m.Config.MaxTitles),
 			Txt: InnerHTML(s.Nodes[0]),
 		}
-		Note.Context = Note.MkCxt(loc, TitleStack)
+		Note.Context = Note.MkCxt(m, loc, TitleStack)
 		// keep this after MkCxt to be able to ez check for duplicate img
 		Note.Txt = gohtml.Format(Note.Txt)
 		Notes = append(Notes, Note)
 	})
 	csvout, err := os.OpenFile(outFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
-	m.Log.Fatal().Err(err).Msg("couldn't access output CSV file for writing")
+	if err != nil {
+		m.Log.Fatal().Err(err).Msg("couldn't access output CSV file for writing")
+	}
 	writer := csv.NewWriter(csvout)
 	writer.Comma = '\t'
 	defer csvout.Close()
@@ -168,7 +189,7 @@ func Execute(m *meta.Meta) {
 	for _, Note := range Notes {
 		_ = writer.Write([]string{Note.ID, Note.Title, Note.Txt, Note.Context})
 	}
-	m.Log.Info().Msg(fmt.Sprint(len(Notes), " Notes in total"))
+	m.Log.Info().Int("total notes", len(Notes)).Msg("")
 	elapsed := time.Since(launch)
 	m.Log.Info().Msgf("Done in %s", elapsed)
 }

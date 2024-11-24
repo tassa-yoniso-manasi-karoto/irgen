@@ -51,9 +51,8 @@ _(h1, h2... are the heading tags that will appear in the raw HTML you don't need
 - **ResXMax** and **ResYMax**: on wikipedia each image is available in various resolutions and irgen will automatically download the highest quality available but you can limit the maximal resolution accepted using these values.
 
 ## TODO
-- merge Fn and FnScope into a JSON struct
-- "pinned" user-defined group of high-value image that can be displayed none
 - ankiconnect support
+- "pinned" user-defined group of high-value image that can be displayed none
 
 ## About
 I originally started this project many, many years ago. It lived first as a shell script, then as python script, then as a very poorly written Go codebase. I am providing it here after a near complete rewrite for public interest. (edit: the code is still pretty bad tbh)
