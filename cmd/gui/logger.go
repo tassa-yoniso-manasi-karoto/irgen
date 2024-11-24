@@ -28,8 +28,8 @@ func setupLogger(ctx context.Context) zerolog.Logger {
 	return zerolog.New(zerolog.ConsoleWriter{
 		Out:			multiWriter,
 		NoColor:		true,
-		FormatTimestamp: 	func(i interface{}) string { return "" },
-	}).With().Logger()
+		TimeFormat: 		time.TimeOnly,
+	}).With().Timestamp().Logger()
 }
 
 
@@ -61,7 +61,9 @@ func detectLogLevel(msg string) (level, cleanMsg string) {
 }
 
 func (w *LogWriter) Write(p []byte) (n int, err error) {
-	rawMsg := string(p)
+	// trim time in 15:04:05 format, svelte will be provided the time separately
+	// to tag and style it
+	rawMsg := string(p[9:])
 	level, cleanMsg := detectLogLevel(rawMsg)
 	
 	msg := LogMessage{
