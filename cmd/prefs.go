@@ -10,7 +10,15 @@ import (
 	"path/filepath"
 	
 	"github.com/rs/zerolog"
+	
+	
 )
+
+// TODO
+// TODO this code must be rm or recycled in /internal/meta
+// TODO
+
+
 
 type prefType struct {
 	DestDir, CollectionMedia string
@@ -38,7 +46,7 @@ func init() {
 		logger.Info().Msg(fmt.Sprint(err))
 	}
 	if errjs := json.Unmarshal([]byte(data), &pref); errjs != nil && !errors.Is(err, os.ErrNotExist){
-		check(err)
+		logger.Error().Err(err).Msg("couldn't unmarshall JSON config file")
 	}
 	if pref.DestDir == "" && filepath.IsAbs(CurrentDir) {
 		pref.DestDir = CurrentDir

@@ -53,7 +53,7 @@ overhaul logging
 
 func Execute(m *meta.Meta) {
 	userGivenPath := m.Targ
-	m.Log.Debug().Msg("Started")
+	m.Log.Debug().Msg("Execution started")
 	if pref.CollectionMedia == "" {
 		m.Log.Error().Msg("Images can't be imported because the path to collection has not been provided.")
 	}
@@ -74,12 +74,11 @@ func Execute(m *meta.Meta) {
 	var err error
 	if filepath.IsAbs(userGivenPath) {
 		if !canStat(userGivenPath) {
-			m.Log.Error().Msg("No input file specified or default file location unaccessible: " + userGivenPath)
-			os.Exit(1)
+			m.Log.Fatal().Msg("No input file specified or default file location unaccessible: " + userGivenPath)
 		}
 		Extractor = local
 		file, err = os.ReadFile(userGivenPath)
-		check(err)
+		m.Log.Fatal().Err(err).Msg("can stat but not read specified input file, check permissions")
 	} else {
 		for _, extractor := range extractors {
 			if extractor.Validator.MatchString(userGivenPath) {
@@ -103,20 +102,18 @@ func Execute(m *meta.Meta) {
 		Msg("init")
 	if Extractor.Name != "local" {
 		resp, err := http.Get(userGivenPath)
-		pp.Println(userGivenPath)
-		pp.Println(err)
-		check(err)
+		m.Log.Fatal().Err(err).Msg("couldn't access URL")
 		if resp.StatusCode != http.StatusOK {
 			m.Log.Error().Str("Received response status", resp.Status).Msg("HTTP")
 		} else {
 			m.Log.Info().Str("Received response status", resp.Status).Msg("HTTP")
 		}
 		file, err = io.ReadAll(resp.Body)
-		check(err)
+		m.Log.Fatal().Err(err).Msg("reading retrieved data failed")
 	}
 	launch := time.Now()
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(file))
-	check(err)
+	m.Log.Fatal().Err(err).Msg("couldn't prepare the document for parsing")
 	Extractor.Clean(doc, Article.Lang)
 	n := doc.Find(Extractor.ContentSelector)
 	// drag the headings up until they are direct children of the content-containing tag
@@ -132,10 +129,10 @@ func Execute(m *meta.Meta) {
 	Extractor.TakeImgAlong(n)
 	// this returns InnerHTML
 	content, err := n.Html()
-	check(err)
+	m.Log.Fatal().Err(err).Msg("couldn't access HTML content of file")
 	content = "<cutpattern>" + Cut(content) + "</cutpattern>"
 	doc, err = goquery.NewDocumentFromReader(strings.NewReader(content))
-	check(err)
+	m.Log.Fatal().Err(err).Msg("couldn't prepare the document for 2nd parsing")
 	Preprocess(doc)
 	var Notes []NoteType
 	doc.Find("cutpattern").Each(func(i int, s *goquery.Selection) {
@@ -163,7 +160,7 @@ func Execute(m *meta.Meta) {
 		Notes = append(Notes, Note)
 	})
 	csvout, err := os.OpenFile(outFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
-	check(err)
+	m.Log.Fatal().Err(err).Msg("couldn't access output CSV file for writing")
 	writer := csv.NewWriter(csvout)
 	writer.Comma = '\t'
 	defer csvout.Close()

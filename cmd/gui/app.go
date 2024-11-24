@@ -37,6 +37,12 @@ func (a *App) Process(params ProcessParams) string {
 	a.m.Config.MaxTitles = params.NumberOfTitle
 	a.m.Config.ResXMax = params.MaxXResolution
 	a.m.Config.ResYMax = params.MaxYResolution
+	a.m.Log.Debug().
+		Str("Targ", params.URL).
+		Int("MaxTitles", params.NumberOfTitle).
+		Int("MaxXResolution", params.MaxXResolution).
+		Int("MaxYResolution", params.MaxYResolution).
+		Msg("Processing parameters provided by GUI")
 	cmd.Execute(a.m)
 	return ""
 }
