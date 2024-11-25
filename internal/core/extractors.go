@@ -18,21 +18,22 @@ import (
 	"errors"
 	"os"
 	"net/url"
+	"context"
 	
-	"github.com/schollz/progressbar/v3"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/rs/zerolog/log"
 	
 	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/meta"
+	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/common"
 )
 
 
 type ExtractorType struct {
-	Validator               *regexp.Regexp
+	Validator			   *regexp.Regexp
 	Name, ContentSelector   string
-	Clean                   func(*goquery.Document, string)
-	MustSkip                func([]*html.Node) bool
-	IMGProcessor		func(*meta.Meta, *goquery.Selection)
+	Clean				   func(*goquery.Document, string)
+	MustSkip				func([]*html.Node) bool
+	IMGProcessor		func(context.Context, *meta.Meta, *goquery.Selection)
 }
 
 type ThumbnailType struct {
@@ -81,12 +82,13 @@ var wiki = ExtractorType{
 		}
 		return false
 	},
-	IMGProcessor: func(m *meta.Meta, n *goquery.Selection) {
+	IMGProcessor: func(ctx context.Context, m *meta.Meta, n *goquery.Selection) {
 		imgs := n.Find("img")
-		bar := progressbar.DefaultBytes(
+		/*bar := progressbar.DefaultBytes(
 			-1,
 			"Downloading images...",
-		)
+		)*/
+		var URLs, filenames []string
 		imgs.Each(func(i int, s *goquery.Selection) {
 			href, found := s.Parent().Attr("href")
 			if !found {
@@ -108,20 +110,24 @@ var wiki = ExtractorType{
 			p := m.Config.CollectionMedia+filename
 			if _, err := os.Stat(p); errors.Is(err, os.ErrNotExist) {
 				//log.Debug().Msg("\nDownloading https://"+strings.TrimPrefix(href, "//"))
-				DownloadFile(p, "https://"+strings.TrimPrefix(href, "//"), bar)
+				//DownloadFile(p, "https://"+strings.TrimPrefix(href, "//"), bar)
+				URLs = append(URLs, "https://"+strings.TrimPrefix(href, "//"))
+				filenames = append(filenames, filename)
 				currentTime := time.Now().Local()
 				_ = os.Chtimes(p, currentTime, currentTime)
 			}
-			// TODO rework due to GUI
-			bar.Add(1)
+			//bar.Add(1)
 		})
-		fmt.Print("\n")
+		m.Log.Trace().Strs("URLs", URLs).Strs("filenames", filenames).Msg("Downloads starting")
+		common.DownloadFiles(ctx, m, URLs, filenames)
+		m.Log.Trace().Msg("Downloads completed")
+		//fmt.Print("\n")
 	},
 }
 
 
 
-func (Extractor ExtractorType) TakeImgAlong(m *meta.Meta, n *goquery.Selection) {
+func (Extractor ExtractorType) TakeImgAlong(ctx context.Context, m *meta.Meta, n *goquery.Selection) {
 	if Extractor.Name == "local"  {
 		files, _ := ioutil.ReadDir(filepath.Dir(inFile))
 		var total int
@@ -150,7 +156,7 @@ func (Extractor ExtractorType) TakeImgAlong(m *meta.Meta, n *goquery.Selection) 
 		}
 		log.Info().Msg(fmt.Sprint(total, " images copied."))
 	} else {
-		Extractor.IMGProcessor(m, n)
+		Extractor.IMGProcessor(ctx, m, n)
 	}
 }
 
@@ -200,21 +206,5 @@ func wikiPrefForHiRes(m *meta.Meta, href string) string {
 		}
 	}
 	return href
-}
-
-
-func DownloadFile(filepath string, url string, bar *progressbar.ProgressBar) error {
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-	_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
-	return err
 }
 

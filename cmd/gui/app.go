@@ -43,6 +43,6 @@ func (a *App) Process(params ProcessParams) string {
 	a.m.Config.MaxTitles = params.NumberOfTitle
 	a.m.Config.ResXMax = params.MaxXResolution
 	a.m.Config.ResYMax = params.MaxYResolution
-	core.Execute(a.m)
+	core.Execute(a.ctx, a.m)
 	return ""
 }

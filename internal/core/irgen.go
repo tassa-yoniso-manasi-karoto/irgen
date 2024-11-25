@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"context"
 	
 	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/meta"
 	
@@ -37,6 +38,7 @@ type ArticleType struct {
 	Name, Lang string
 }
 
+// WARNING: Don't confuse Note.Context (image enriched field of the note-to-be) and Go's context!
 type NoteType struct {
 	QNode *goquery.Selection
 	ID, Title, Txt, Context string
@@ -46,16 +48,17 @@ type NoteType struct {
 
 
 /* TODO
-mv /cmd to /internal
-handle progress bar in svelte for image downloading
-split Execute func below
-
-
+add waiting/process bar while parsing image-wikipages
+fix bug in wikiPrefForHiRes providing non-img URLs to the img downloader
+minimize m.Log.Fatal() usage bc it crashes the GUI
 FIX CORE: "1 Notes in total"????
+
+
+split Execute func below
 */
 
 
-func Execute(m *meta.Meta) {
+func Execute(ctx context.Context, m *meta.Meta) {
 	m.LogConfig("config state at execution")
 	userGivenPath := m.Targ
 	m.Log.Debug().Msg("Execution started")
@@ -139,7 +142,7 @@ func Execute(m *meta.Meta) {
 		s.ReplaceWithSelection(h)
 		return true
 	})
-	Extractor.TakeImgAlong(m, n)
+	Extractor.TakeImgAlong(ctx, m, n)
 	// this returns InnerHTML
 	content, err := n.Html()
 	if err != nil {
