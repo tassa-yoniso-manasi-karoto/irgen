@@ -7,8 +7,8 @@ import (
 	"github.com/gookit/color"
 	"github.com/k0kubun/pp"
 	
-	"github.com/tassa-yoniso-manasi-karoto/irgen/cmd"
 	"github.com/tassa-yoniso-manasi-karoto/irgen/cmd/gui"
+	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/core"
 	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/meta"
 	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/common"
 )
@@ -71,7 +71,7 @@ func run(c *urcli.Context, m *meta.Meta) {
 		m.Targ = c.Args().First()
 	}
 
-	cmd.Execute(m)
+	core.Execute(m)
 }
 
 
