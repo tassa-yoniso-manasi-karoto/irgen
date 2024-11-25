@@ -18,11 +18,11 @@ func Run(m *meta.Meta) {
 	wails.Run(&options.App{
 		Title:	 "IRGen",
 		Width:	 750,
-		Height:	635,
+		Height:	660,
 		MinWidth:  750,
 		MinHeight: 300,
-		MaxWidth:  750,
-		MaxHeight: 720,
+		MaxWidth:  1900,//750,
+		MaxHeight: 800,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

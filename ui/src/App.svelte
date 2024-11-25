@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
+    import "./app.css"
     import LogViewer from './LogViewer.svelte';
     import ThemeToggle from './ThemeToggle.svelte';
     
@@ -11,6 +12,7 @@
     let isProcessing = false;
     let isDark = true; // Default to dark mode
     let version = "0.0.0";
+    let downloadProgress = null;
     
     
     onMount(async () => {
@@ -34,7 +36,8 @@
         }
 
         isProcessing = true;
-
+	downloadProgress = null;
+	
         try {
             const params = {
                 url: url,
@@ -112,7 +115,7 @@
             </button>
         </div>
         
-        <LogViewer />
+        <LogViewer bind:downloadProgress />
 
         {#if status}
             <div class="status">

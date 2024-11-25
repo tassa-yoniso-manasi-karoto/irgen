@@ -2,6 +2,7 @@ package cli
 
 import (
 	"os"
+	"context"
 	
 	urcli "github.com/urfave/cli/v2"
 	"github.com/gookit/color"
@@ -58,6 +59,7 @@ func run(c *urcli.Context, m *meta.Meta) {
 		Bool("inputFlagNotSet", !c.IsSet("input")).
 		Msg("")
 	if c.NArg() == 0 && !c.IsSet("input") {
+		m.GUIMode = true
 		gui.Run(m)
 		return
 	}
@@ -71,7 +73,7 @@ func run(c *urcli.Context, m *meta.Meta) {
 		m.Targ = c.Args().First()
 	}
 
-	core.Execute(m)
+	core.Execute(context.TODO(), m)
 }
 
 

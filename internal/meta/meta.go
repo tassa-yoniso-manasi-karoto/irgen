@@ -30,6 +30,7 @@ type Meta struct {
 	Koanf  *koanf.Koanf
 	Config Config
 	DevMode bool
+	GUIMode bool
 }
 
 var ConsoleWriter = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.TimeOnly}).With().Timestamp().Logger()
