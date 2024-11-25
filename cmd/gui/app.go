@@ -2,7 +2,7 @@ package gui
 
 import (
 	"context"
-	"github.com/tassa-yoniso-manasi-karoto/irgen/cmd"
+	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/core"
 	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/meta"
 	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/common"
 )
@@ -43,6 +43,6 @@ func (a *App) Process(params ProcessParams) string {
 	a.m.Config.MaxTitles = params.NumberOfTitle
 	a.m.Config.ResXMax = params.MaxXResolution
 	a.m.Config.ResYMax = params.MaxYResolution
-	cmd.Execute(a.m)
+	core.Execute(a.m)
 	return ""
 }
