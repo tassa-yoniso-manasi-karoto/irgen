@@ -22,6 +22,8 @@ import (
 	
 	"github.com/PuerkitoBio/goquery"
 	"github.com/rs/zerolog/log"
+	"github.com/gookit/color"
+	"github.com/k0kubun/pp"
 	
 	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/meta"
 	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/common"
@@ -94,8 +96,14 @@ var wiki = ExtractorType{
 			if !found {
 				return
 			}
-			//pp.Println(RenderNode(s.Nodes[0]))
+			class, found := s.Parent().Attr("class")
+			if !found || class != "mw-file-description" {
+				return
+			}
+			//color.Redln(RenderNode(s.Nodes[0]))
+			//color.Yellowln(href)
 			href = wikiPrefForHiRes(m, href)
+			//color.Greenln(href,  "\n")
 			//log.Debug().Msg("\n"+src+" →→→→→→→ "+path.Base(href))
 			s.RemoveAttr("width")
 			s.RemoveAttr("height")
@@ -205,6 +213,19 @@ func wikiPrefForHiRes(m *meta.Meta, href string) string {
 			href = Thumbnail.Href
 		}
 	}
+	// some low res img don't have any resized variants
+	if len(Thumbnails) == 0 {
+		doc.Find("a.internal").Each(func(index int, s *goquery.Selection) {
+			href, _ = s.Attr("href")
+		})
+	}
 	return href
+}
+
+
+
+func placeholder6zui9876() {
+	color.Redln(" 𝒻*** 𝓎ℴ𝓊 𝒸ℴ𝓂𝓅𝒾𝓁ℯ𝓇")
+	pp.Println("𝓯*** 𝔂𝓸𝓾 𝓬𝓸𝓶𝓹𝓲𝓵𝓮𝓻")
 }
 

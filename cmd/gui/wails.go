@@ -21,8 +21,8 @@ func Run(m *meta.Meta) {
 		Height:	660,
 		MinWidth:  750,
 		MinHeight: 300,
-		MaxWidth:  1900,//750,
-		MaxHeight: 800,
+		//MaxWidth:  1900,//750,
+		//MaxHeight: 800,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

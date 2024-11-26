@@ -49,11 +49,15 @@ type NoteType struct {
 
 /* TODO
 add waiting/process bar while parsing image-wikipages
-fix bug in wikiPrefForHiRes providing non-img URLs to the img downloader
+
 minimize m.Log.Fatal() usage bc it crashes the GUI
+
+"CLEAR" button should clear progress bar too
+uncheck autoscroll when user scroll and reactivate when user scroll to bottom of feed
+
+get MediaDirPath from AnkiConnect
+
 FIX CORE: "1 Notes in total"????
-
-
 split Execute func below
 */
 

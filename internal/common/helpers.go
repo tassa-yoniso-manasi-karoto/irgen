@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	maxRetries = 1
+	maxRetries = 2
 	retryDelay = 1 * time.Second
 )
 
