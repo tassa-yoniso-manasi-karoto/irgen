@@ -2,9 +2,12 @@ package gui
 
 import (
 	"context"
+	
 	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/core"
 	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/meta"
 	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/common"
+	
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type App struct {
@@ -47,3 +50,30 @@ func (a *App) Process(params ProcessParams) string {
 	return ""
 }
 
+
+func (a *App) QueryAnkiConnect4MediaDir(q common.AnkiConnectQuery) bool {
+	return common.QueryAnkiConnect(a.m, q)
+}
+
+func (a *App) OpenFileDialog() (string, error) {
+    file, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+        Title: "Select HTML File",
+        Filters: []runtime.FileFilter{
+            {
+                DisplayName: "HTML Files (*.html;*.htm)",
+                Pattern:     "*.html;*.htm",
+            },
+            {
+                DisplayName: "All Files (*.*)",
+                Pattern:     "*.*",
+            },
+        },
+    })
+    
+    if err != nil {
+        a.m.Log.Error().Err(err).Msg("Failed to open file dialog")
+        return "", err
+    }
+    
+    return file, nil
+}

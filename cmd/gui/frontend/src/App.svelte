@@ -3,6 +3,7 @@
     import "./app.css"
     import LogViewer from './LogViewer.svelte';
     import ThemeToggle from './ThemeToggle.svelte';
+    import Alert from './Alert.svelte';
     
     let url = '';
     let numberOfTitle = 3;
@@ -10,14 +11,42 @@
     let maxYResolution = 1080;
     let status = '';
     let isProcessing = false;
-    let isDark = true; // Default to dark mode
-    let version = "0.0.0";
+    let isDark = true;
+    let version = "0.0.0-n/a";
     let downloadProgress = null;
-    
+    let ankiConnectError: string | null = null;
+    let alertVisible = false;
     
     onMount(async () => {
         version = await window.go.gui.App.GetVersion();
+        await checkAnkiConnect();
     });
+    
+    async function checkAnkiConnect() {
+        try {
+            const result = await window.go.gui.App.QueryAnkiConnect4MediaDir({
+                action: "getMediaDirPath"
+            });
+            if (!result) {
+                ankiConnectError = "Failed to connect to AnkiConnect. Please make sure Anki is running and AnkiConnect is properly installed.";
+                alertVisible = true;
+            }
+        } catch (error) {
+            ankiConnectError = error.message || "An error occurred while connecting to AnkiConnect";
+            alertVisible = true;
+        }
+    }
+    
+    async function openFileDialog() {
+        try {
+            const filepath = await window.go.gui.App.OpenFileDialog();
+            if (filepath) {
+                url = filepath;
+            }
+        } catch (error) {
+            console.error('Error opening file dialog:', error);
+        }
+    }
     
     async function processURL() {
         if (!url) {
@@ -55,6 +84,7 @@
         }
     }
 </script>
+
 <div class="theme-toggle-wrapper">
     <span class="version">irgen {version}</span>
     <ThemeToggle bind:isDark />
@@ -62,58 +92,96 @@
 
 <div class="app-background" class:dark={isDark}>
     <main class="container">
-        <div class="url-input">
-            <input
-                type="text"
-                bind:value={url}
-                placeholder="Enter URL or path to HTML file here"
+        {#if ankiConnectError}
+            <Alert 
+                message={ankiConnectError}
+                type="error"
+                bind:visible={alertVisible}
+                on:dismiss={() => alertVisible = false}
             />
-        </div>
+        {/if}
+	<div class="url-input-container">
+	    <div class="url-input">
+		<input
+		    type="text"
+		    bind:value={url}
+		    placeholder="Enter URL or path to HTML file here"
+		/>
+		<button 
+		    class="file-picker-btn" 
+		    on:click={openFileDialog}
+		    title="Choose HTML file"
+		>
+		    <svg 
+		        xmlns="http://www.w3.org/2000/svg" 
+		        width="20" 
+		        height="20" 
+		        viewBox="0 0 24 24" 
+		        fill="none" 
+		        stroke="currentColor" 
+		        stroke-width="2" 
+		        stroke-linecap="round" 
+		        stroke-linejoin="round"
+		    >
+		        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+		        <polyline points="14 2 14 8 20 8"></polyline>
+		        <line x1="12" y1="18" x2="12" y2="12"></line>
+		        <line x1="9" y1="15" x2="15" y2="15"></line>
+		    </svg>
+		</button>
+	    </div>
+	</div>
 
-        <div class="number-inputs-wrapper">
-            <div class="number-inputs">
-                <div class="input-group">
-                    <label for="numberOfTitle">Number of Title</label>
-                    <input
-                        type="number"
-                        id="numberOfTitle"
-                        bind:value={numberOfTitle}
-                        min="1"
-                    />
-                </div>
+	<div class="controls-row">
+	    <div class="number-inputs">
+		<div class="input-group">
+		    <label for="numberOfTitle">Number of Title</label>
+		    <input
+		        type="number"
+		        id="numberOfTitle"
+		        bind:value={numberOfTitle}
+		        min="1"
+		    />
+		</div>
 
-                <div class="input-group">
-                    <label for="maxXResolution">Max X Resolution</label>
-                    <input
-                        type="number"
-                        id="maxXResolution"
-                        bind:value={maxXResolution}
-                        min="1"
-                    />
-                </div>
+		<div class="input-group">
+		    <label for="maxXResolution">Max X Resolution</label>
+		    <input
+		        type="number"
+		        id="maxXResolution"
+		        bind:value={maxXResolution}
+		        min="1"
+		    />
+		</div>
 
-                <div class="input-group">
-                    <label for="maxYResolution">Max Y Resolution</label>
-                    <input
-                        type="number"
-                        id="maxYResolution"
-                        bind:value={maxYResolution}
-                        min="1"
-                    />
-                </div>
-            </div>
-        </div>
+		<div class="input-group">
+		    <label for="maxYResolution">Max Y Resolution</label>
+		    <input
+		        type="number"
+		        id="maxYResolution"
+		        bind:value={maxYResolution}
+		        min="1"
+		    />
+		</div>
+	    </div>
 
-        <div class="button-container">
-            <button on:click={processURL} disabled={isProcessing}>
-                {#if isProcessing}
-                    Processing... 
-                    <div class="spinner"></div>
-                {:else}
-                    Process
-                {/if}
-            </button>
-        </div>
+	    <div class="input-group">
+		<label>   </label>
+		<button 
+		    class="process-button" 
+		    on:click={processURL} 
+		    disabled={isProcessing}
+		    title={isProcessing ? "Processing..." : "Start processing"}
+		>
+		    {#if isProcessing}
+		        Processing... 
+		        <div class="spinner"></div>
+		    {:else}
+		        Process
+		    {/if}
+		</button>
+	    </div>
+	</div>
         
         <LogViewer bind:downloadProgress />
 
@@ -182,19 +250,49 @@
         padding: 1rem;
     }
 
-    .url-input {
+    .url-input-container {
         margin-bottom: 1rem;
+        width: 100%;
+    }
+
+    .url-input {
+        display: flex;
+        gap: 0.5rem;
+        width: 100%;
     }
 
     .url-input input {
-        width: 99%;
+        flex: 1;
         padding: 0.75rem;
         border: 1px solid var(--input-border);
         border-radius: 4px;
         font-size: 1rem;
-        box-sizing: border-box;
         background-color: var(--input-bg);
         color: var(--text-color);
+    }
+
+    .file-picker-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem;
+        background-color: var(--input-bg);
+        border: 1px solid var(--input-border);
+        border-radius: 4px;
+        color: var(--text-color);
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        min-width: 42px;
+    }
+
+    .file-picker-btn:hover {
+        background-color: var(--button-bg);
+        border-color: var(--button-bg);
+        color: white;
+    }
+
+    .file-picker-btn:active {
+        transform: scale(0.95);
     }
 
     .url-input input::placeholder {
@@ -202,85 +300,88 @@
         opacity: 0.6;
     }
 
-    .number-inputs-wrapper {
-        width: 100%;
+    .controls-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 1.5rem;
         margin-bottom: 1rem;
-        overflow-x: auto;
+        width: 100%;
     }
 
     .number-inputs {
         display: flex;
-        justify-content: space-between;
         gap: 1rem;
-        min-width: 600px;
+        flex: 1;
     }
 
     .input-group {
         flex: 1;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        min-width: 180px;
+        gap: 0.25rem;
     }
 
     label {
-        margin-bottom: 0.5rem;
-        font-weight: bold;
+        font-size: 0.75rem;
+        font-weight: 500;
         color: var(--text-color);
         white-space: nowrap;
-        text-align: center;
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
     input[type="number"] {
         width: 100%;
-        padding: 0.5rem;
+        padding: 0.375rem 0.5rem;
         border: 1px solid var(--input-border);
         border-radius: 4px;
         text-align: center;
-        font-size: 1rem;
-        box-sizing: border-box;
+        font-size: 0.875rem;
         background-color: var(--input-bg);
         color: var(--text-color);
+        transition: all 0.2s ease;
     }
 
-    .button-container {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 1rem;
+    input[type="number"]:focus {
+        border-color: var(--button-bg);
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(237, 146, 79, 0.2);
     }
 
-    button {
-        width: auto;
-        min-width: 200px;
-        padding: 0.75rem 1.5rem;
+    .process-button {
+        min-width: 140px;
+        height: 2.25rem; /* Match input height */
+        padding: 0 1.5rem;
         background-color: var(--button-bg);
         color: white;
         border: none;
         border-radius: 4px;
         cursor: pointer;
-        font-size: 1.1rem;
-        font-weight: bold;
-        transition: all 0.3s ease;
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
     }
 
-    button:hover {
+    .process-button:hover:not(:disabled) {
         background-color: var(--button-hover);
+        transform: translateY(-1px);
     }
 
-    button:disabled {
+    .process-button:active:not(:disabled) {
+        transform: scale(0.98) translateY(0);
+    }
+
+    .process-button:disabled {
         opacity: 0.7;
         cursor: not-allowed;
     }
 
-    .status {
-        padding: 1rem;
-        background-color: var(--container-bg);
-        border-radius: 4px;
-        white-space: pre-line;
-        margin-top: 1rem;
-        color: var(--text-color);
-    }
-    
     .spinner {
         width: 20px;
         height: 20px;
@@ -289,6 +390,7 @@
         border-top-color: white;
         animation: spin 1s linear infinite;
         display: inline-block;
+        margin-left: 0.5rem;
     }
 
     @keyframes spin {
@@ -297,8 +399,17 @@
         }
     }
 
-    button:active:not(:disabled) {
-        transform: scale(0.98);
+    /* Improve number input arrows */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        opacity: 1;
+        height: 1.5em;
+        margin: 0 0.25em;
+    }
+
+    /* Add subtle hover effect to inputs */
+    input[type="number"]:hover {
+        border-color: var(--button-bg);
     }
     
     .version {

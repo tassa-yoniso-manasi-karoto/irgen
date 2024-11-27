@@ -9,9 +9,13 @@ import (
 	"time"
 	"sync/atomic"
 	"errors"
-
+	"bytes"
+	"encoding/json"
+	
 	"github.com/schollz/progressbar/v3"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/k0kubun/pp"
+	"github.com/gookit/color"
 	
 	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/meta"
 )
@@ -19,7 +23,57 @@ import (
 const (
 	maxRetries = 2
 	retryDelay = 1 * time.Second
+	jsonMIME = "application/json"
 )
+
+
+
+type AnkiConnectQuery struct {
+	Action string `json:"action"`
+}
+
+type AnkiConnectRespGetMediaDirPath struct {
+	Result,	Error string
+}
+
+var ankiConnectQueryTemplate = `{
+    "action": "%s",
+    "version": 6
+}`
+
+func QueryAnkiConnect(m *meta.Meta, q AnkiConnectQuery) (ok bool) {
+	jsonStr := []byte(fmt.Sprintf(ankiConnectQueryTemplate, q.Action))
+	resp, err := http.Post("http://localhost:8765", jsonMIME, bytes.NewBuffer(jsonStr))
+	if err != nil {
+		m.Log.Error().
+			Err(err).
+			Msg("POST request to AnkiConnect failed")
+		return
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		m.Log.Error().
+			Err(err).
+			Msg("couldn't read response of AnkiConnect after getMediaDirPath")
+		return
+	}
+	var response AnkiConnectRespGetMediaDirPath
+	json.Unmarshal(body, &response)
+	if response.Error != "" {
+		pp.Println(response)
+		m.Log.Error().
+			//Str("RawAnkiConnectErr", response.Error).
+			Err(errors.New(response.Error)).
+			Msg("AnkiConnect returned an error when requesting getMediaDirPath")
+		return
+	}
+	m.Config.CollectionMedia = response.Result
+	m.Log.Debug().Str("MediaDir", response.Result).Msg("")
+	m.Log.Info().Msg("AnkiConnect detected")
+	return true
+}
+
 
 type DownloadProgress struct {
 	Current		int	`json:"current"`
@@ -30,7 +84,6 @@ type DownloadProgress struct {
 	Operation	string	`json:"operation"`
 }
 
-// Function to calculate average speed
 func calculateAverageSpeed(bytesDownloaded int64, startTime time.Time) string {
 	elapsed := time.Since(startTime).Seconds()
 	bytesPerSecond := float64(bytesDownloaded) / elapsed
@@ -41,7 +94,7 @@ func calculateAverageSpeed(bytesDownloaded int64, startTime time.Time) string {
 	return fmt.Sprintf("%.1f KB/s", bytesPerSecond/1024)
 }
 
-// retryableDownload attempts to download a file with retries
+
 func retryableDownload(ctx context.Context, filepath, URL string, totalBytes *int64, m *meta.Meta) (int64, error) {
 	var lastErr error
 	
@@ -186,3 +239,14 @@ func StringCapLen(s string, max int) string{
 	}
 	return s
 }
+
+
+
+
+
+
+func placeholder6zuwertzuikuztrewi9876() {
+	color.Redln(" 𝒻*** 𝓎ℴ𝓊 𝒸ℴ𝓂𝓅𝒾𝓁ℯ𝓇")
+	pp.Println("𝓯*** 𝔂𝓸𝓾 𝓬𝓸𝓶𝓹𝓲𝓵𝓮𝓻")
+}
+

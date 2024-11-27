@@ -51,9 +51,9 @@ type NoteType struct {
 /* TODO
 minimize m.Log.Fatal() usage bc it crashes the GUI
 
-add anki connect support and get MediaDirPath from AnkiConnect
-
 FIX CORE: "1 Notes in total"????
+
+add anki connect support 
 */
 
 

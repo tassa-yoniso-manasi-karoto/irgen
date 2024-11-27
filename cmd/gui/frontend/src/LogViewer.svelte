@@ -69,17 +69,22 @@
 
 <div class="log-viewer">
     <div class="controls">
-        <div class="auto-scroll">
-            <input 
-                type="checkbox" 
-                id="auto-scroll" 
-                bind:checked={autoScroll}
-            >
-            <label 
-                for="auto-scroll"
-                on:click|preventDefault
-            >Auto-scroll</label>
-        </div>
+	<div class="auto-scroll">
+	    <button 
+		type="button" 
+		class="checkbox-button" 
+		on:click={() => autoScroll = !autoScroll}
+		aria-pressed={autoScroll}
+	    >
+		<input 
+		    type="checkbox" 
+		    checked={autoScroll}
+		    aria-hidden="true"
+		    readonly
+		/>
+		Auto-scroll
+	    </button>
+	</div>
         <button on:click={clearLogs}>Clear</button>
     </div>
     
@@ -260,6 +265,7 @@
 	.progress-section {
 		transition: opacity 0.2s ease-in-out;
 	}
+
 </style>
 
 
