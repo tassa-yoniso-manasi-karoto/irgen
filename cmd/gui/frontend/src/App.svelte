@@ -83,6 +83,13 @@
             isProcessing = false;
         }
     }
+    
+    function handleKeyDown(event: KeyboardEvent) {
+        if (event.key === 'Enter' && !isProcessing) {
+            event.preventDefault(); // Prevent default form submission
+            processURL();
+        }
+    }
 </script>
 
 <div class="theme-toggle-wrapper">
@@ -101,17 +108,18 @@
             />
         {/if}
 	<div class="url-input-container">
-	    <div class="url-input">
-		<input
-		    type="text"
-		    bind:value={url}
-		    placeholder="Enter URL or path to HTML file here"
-		/>
-		<button 
-		    class="file-picker-btn" 
-		    on:click={openFileDialog}
-		    title="Choose HTML file"
-		>
+	<div class="url-input">
+	    <input
+		type="text"
+		bind:value={url}
+		placeholder="Enter URL or path to HTML file here"
+		on:keydown={handleKeyDown}
+	    />
+	    <button 
+		class="file-picker-btn" 
+		on:click={openFileDialog}
+		title="Choose HTML file"
+	    >
 		    <svg 
 		        xmlns="http://www.w3.org/2000/svg" 
 		        width="20" 
@@ -165,8 +173,8 @@
 		</div>
 	    </div>
 
-	    <div class="input-group">
-		<label>   </label>
+	    <div class="input-group process-group">
+		<label> </label>
 		<button 
 		    class="process-button" 
 		    on:click={processURL} 
@@ -174,8 +182,8 @@
 		    title={isProcessing ? "Processing..." : "Start processing"}
 		>
 		    {#if isProcessing}
-		        Processing... 
-		        <div class="spinner"></div>
+		        Processing
+		        <div class="spinner">&nbsp;</div>
 		    {:else}
 		        Process
 		    {/if}
@@ -312,6 +320,7 @@
         display: flex;
         gap: 1rem;
         flex: 1;
+        max-width: calc(100% - 200px); /* Reserve space for process button */
     }
 
     .input-group {
@@ -319,6 +328,7 @@
         display: flex;
         flex-direction: column;
         gap: 0.25rem;
+        min-width: 0; /* Allow flex items to shrink below content size */
     }
 
     label {
@@ -342,7 +352,7 @@
         color: var(--text-color);
         transition: all 0.2s ease;
     }
-
+    
     input[type="number"]:focus {
         border-color: var(--button-bg);
         outline: none;
@@ -350,9 +360,8 @@
     }
 
     .process-button {
-        min-width: 140px;
-        height: 2.25rem; /* Match input height */
-        padding: 0 1.5rem;
+        height: 2.25rem;
+        padding: 0 1rem;
         background-color: var(--button-bg);
         color: white;
         border: none;
@@ -364,8 +373,10 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 0.5rem;
         transition: all 0.2s ease;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .process-button:hover:not(:disabled) {
@@ -391,6 +402,8 @@
         animation: spin 1s linear infinite;
         display: inline-block;
         margin-left: 0.5rem;
+        flex-shrink: 0; /* Prevent spinner from being squished */
+        line-height: 0; /* Ensure the space doesn't affect height */
     }
 
     @keyframes spin {

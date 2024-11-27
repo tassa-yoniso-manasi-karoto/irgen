@@ -53,7 +53,7 @@ minimize m.Log.Fatal() usage bc it crashes the GUI
 
 FIX CORE: "1 Notes in total"????
 
-add anki connect support 
+add anki connect support for adding notes
 */
 
 

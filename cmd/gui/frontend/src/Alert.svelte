@@ -39,7 +39,7 @@
             on:dismiss={handleDismiss}
         >
             <svelte:fragment slot="icon">
-                <svelte:component this={IconComponent} width="24" height="24" />
+                <svelte:component this={IconComponent} width="48" height="48" />
             </svelte:fragment>
             <span class="font-medium">
                 {message}
