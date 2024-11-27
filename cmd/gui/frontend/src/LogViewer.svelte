@@ -7,7 +7,6 @@
     export let downloadProgress = null;
     let scrollContainer;
     let autoScroll = true;
-    let isUserScrolling = false;
     
     function getLevelClass(level) {
         const levelMap = {
@@ -21,43 +20,44 @@
         };
         return levelMap[level] || 'info';
     }
-
+    
     function handleScroll(e) {
         const target = e.currentTarget;
         const isAtBottom = Math.abs(
             target.scrollHeight - target.clientHeight - target.scrollTop
         ) < 1;
         
-        isUserScrolling = !isAtBottom;
-        if (isAtBottom) {
-            autoScroll = true;
-        }
-    }
-
-    function toggleAutoScroll() {
-        autoScroll = !autoScroll;
-        if (autoScroll && scrollContainer) {
-            scrollToBottom();
+        if (!isAtBottom) {
+            autoScroll = false;
         }
     }
 
     function scrollToBottom() {
-        if (autoScroll && !isUserScrolling && scrollContainer) {
+        if (scrollContainer) {
             setTimeout(() => {
                 scrollContainer.scrollTop = scrollContainer.scrollHeight;
             }, 0);
         }
     }
 
+    function clearLogs() {
+        logs = [];
+        downloadProgress = null;
+    }
+
     onMount(() => {
         EventsOn("log", (log) => {
             logs = [...logs, log];
-            scrollToBottom();
+            if (autoScroll) {
+                scrollToBottom();
+            }
         });
 
         EventsOn("download-progress", (progress) => {
             downloadProgress = progress;
-            scrollToBottom();
+            if (autoScroll) {
+                scrollToBottom();
+            }
         });
     });
 
@@ -70,10 +70,17 @@
 <div class="log-viewer">
     <div class="controls">
         <div class="auto-scroll">
-            <input type="checkbox" id="auto-scroll" bind:checked={autoScroll} on:change={toggleAutoScroll}>
-            <label for="auto-scroll">Auto-scroll</label>
+            <input 
+                type="checkbox" 
+                id="auto-scroll" 
+                bind:checked={autoScroll}
+            >
+            <label 
+                for="auto-scroll"
+                on:click|preventDefault
+            >Auto-scroll</label>
         </div>
-        <button on:click={() => logs = []}>Clear</button>
+        <button on:click={clearLogs}>Clear</button>
     </div>
     
     <div class="log-container" bind:this={scrollContainer} on:scroll={handleScroll}>
@@ -93,11 +100,13 @@
                     total={downloadProgress.total}
                     speed={downloadProgress.speed}
                     currentFile={downloadProgress.currentFile}
+                    operation={downloadProgress.operation}
                 />
             </div>
         {/if}
     </div>
 </div>
+
 
 <style>
     .log-viewer {
@@ -233,4 +242,24 @@
     .log-container::-webkit-scrollbar-corner {
         background: #1e1e1e;
     }
+
+	/* Add specific styling for the checkbox to ensure it's clickable */
+	.auto-scroll {
+		position: relative;
+		z-index: 10;
+	}
+
+	input[type="checkbox"] {
+		cursor: pointer;
+	}
+
+	label {
+		cursor: pointer;
+		user-select: none;
+	}
+	.progress-section {
+		transition: opacity 0.2s ease-in-out;
+	}
 </style>
+
+

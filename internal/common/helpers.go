@@ -22,11 +22,12 @@ const (
 )
 
 type DownloadProgress struct {
-	Current	 int	 `json:"current"`	  // Current number of files downloaded
-	Total	   int	 `json:"total"`		// Total number of files to download
-	Progress	float64 `json:"progress"`	 // Percentage complete
-	Speed	   string  `json:"speed"`		// Current download speed
-	CurrentFile string  `json:"currentFile"`  // Name of file being downloaded
+	Current		int	`json:"current"`
+	Total		int	`json:"total"`
+	Progress	float64	`json:"progress"`
+	Speed		string	`json:"speed"`
+	CurrentFile	string	`json:"currentFile"`
+	Operation	string	`json:"operation"`
 }
 
 // Function to calculate average speed
@@ -124,6 +125,7 @@ func DownloadFiles(ctx context.Context, m *meta.Meta, URLs, filenames []string) 
 					Progress:	progress,
 					Speed:	   calculateAverageSpeed(totalBytesDownloaded, startTime),
 					CurrentFile: filenames[i], // Show just filename instead of full path
+					Operation:		"Downloading",
 				})
 			}
 		}
@@ -171,4 +173,16 @@ func downloadSingleFile(ctx context.Context, filepath string, URL string, totalB
 	
 	atomic.AddInt64(totalBytes, written)
 	return written, nil
+}
+
+func StringCapLen(s string, max int) string{
+	trimmed := false
+	for len(s) > max {
+		s = s[:len(s)-1]
+		trimmed = true
+	}
+	if trimmed {
+		s += "…"
+	}
+	return s
 }

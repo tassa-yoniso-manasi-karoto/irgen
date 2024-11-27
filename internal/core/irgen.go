@@ -17,6 +17,7 @@ import (
 	"context"
 	
 	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/meta"
+	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/common"
 	
 	"github.com/gookit/color"
 	"github.com/k0kubun/pp"
@@ -48,17 +49,11 @@ type NoteType struct {
 
 
 /* TODO
-add waiting/process bar while parsing image-wikipages
-
 minimize m.Log.Fatal() usage bc it crashes the GUI
 
-"CLEAR" button should clear progress bar too
-uncheck autoscroll when user scroll and reactivate when user scroll to bottom of feed
-
-get MediaDirPath from AnkiConnect
+add anki connect support and get MediaDirPath from AnkiConnect
 
 FIX CORE: "1 Notes in total"????
-split Execute func below
 */
 
 
@@ -167,7 +162,7 @@ func Execute(ctx context.Context, m *meta.Meta) {
 		loc, ok := LocRegister[node]
 		if !ok {
 			m.Log.Error().
-				Str("sample", stringCapLen(InnerHTML(node), 200)).
+				Str("sample", common.StringCapLen(InnerHTML(node), 200)).
 				Msg("loc not found for node " + node.Data)
 		}
 		TitleStack := loc.Stack()
@@ -281,17 +276,6 @@ func contains[T comparable](arr []T, i T) bool {
 	return false
 }
 
-func stringCapLen(s string, max int) string{
-	trimmed := false
-	for len(s) > max {
-		s = s[:len(s)-1]
-		trimmed = true
-	}
-	if trimmed {
-		s += "…"
-	}
-	return s
-}
 
 
 func canStat(path string) bool {

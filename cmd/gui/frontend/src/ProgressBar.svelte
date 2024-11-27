@@ -7,6 +7,7 @@
     export let total = 0;
     export let speed = '';
     export let currentFile = '';
+    export let operation = 'Downloading';
     
     $: percentage = Math.min(Math.round(progress), 100).toString();
 
@@ -20,7 +21,7 @@
     <div class="info-section">
         <div class="file-info">
             <span class="filename" title={currentFile}>
-                Downloading {formatFileName(currentFile)}
+                {operation} {formatFileName(currentFile)}
             </span>
             <span class="counter">
                 ({current}/{total})
@@ -30,9 +31,11 @@
             <span class="percentage">
                 {percentage}%
             </span>
-            <span class="speed">
-                {speed}
-            </span>
+            {#if speed}
+                <span class="speed">
+                    {speed}
+                </span>
+            {/if}
         </div>
     </div>
     <Progressbar

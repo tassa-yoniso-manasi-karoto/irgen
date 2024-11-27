@@ -24,6 +24,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/gookit/color"
 	"github.com/k0kubun/pp"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/schollz/progressbar/v3"
 	
 	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/meta"
 	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/common"
@@ -86,11 +88,41 @@ var wiki = ExtractorType{
 	},
 	IMGProcessor: func(ctx context.Context, m *meta.Meta, n *goquery.Selection) {
 		imgs := n.Find("img")
-		/*bar := progressbar.DefaultBytes(
-			-1,
-			"Downloading images...",
-		)*/
+		
+		totalImages := 0
+		imgs.Each(func(i int, s *goquery.Selection) {
+			_, found := s.Parent().Attr("href")
+			if !found {
+				return
+			}
+			class, found := s.Parent().Attr("class")
+			if !found || class != "mw-file-description" {
+				return
+			}
+			totalImages++
+		})
+
+		m.Log.Debug().Int("totalImages", totalImages).Msg("Starting image resolution analysis")
+
 		var URLs, filenames []string
+		currentImage := 0
+
+		var bar *progressbar.ProgressBar
+		if !m.GUIMode {
+			bar = progressbar.NewOptions(totalImages,
+				progressbar.OptionEnableColorCodes(true),
+				progressbar.OptionSetWidth(20),
+				progressbar.OptionSetDescription("[cyan]Analyzing resolutions..."),
+				progressbar.OptionSetTheme(progressbar.Theme{
+					Saucer:        "[green]=[reset]",
+					SaucerHead:    "[green]>[reset]",
+					SaucerPadding: " ",
+					BarStart:      "[",
+					BarEnd:        "]",
+				}),
+			)
+		}
+
 		imgs.Each(func(i int, s *goquery.Selection) {
 			href, found := s.Parent().Attr("href")
 			if !found {
@@ -100,11 +132,27 @@ var wiki = ExtractorType{
 			if !found || class != "mw-file-description" {
 				return
 			}
-			//color.Redln(RenderNode(s.Nodes[0]))
-			//color.Yellowln(href)
+
+			currentImage++
+			progress := float64(currentImage) / float64(totalImages) * 100
+			filename, _ := url.QueryUnescape(path.Base(href))
+
+			prettyName := strings.TrimPrefix(filename, "File:")
+			if m.GUIMode {
+				runtime.EventsEmit(ctx, "download-progress", common.DownloadProgress{
+					Current:		currentImage,
+					Total:			totalImages,
+					Progress:		progress,
+					CurrentFile:	prettyName,
+					Speed:			"",
+					Operation:		"Analyzing resolutions for",
+				})
+			} else {
+				bar.Describe(fmt.Sprintf("[cyan]%s[reset] %s", "Find res. for ", common.StringCapLen(prettyName, 25)))
+				bar.Set(currentImage)
+			}
+
 			href = wikiPrefForHiRes(m, href)
-			//color.Greenln(href,  "\n")
-			//log.Debug().Msg("\n"+src+" →→→→→→→ "+path.Base(href))
 			s.RemoveAttr("width")
 			s.RemoveAttr("height")
 			s.RemoveAttr("srcset")
@@ -112,26 +160,32 @@ var wiki = ExtractorType{
 			s.RemoveAttr("class")
 			s.RemoveAttr("data-file-height")
 			s.RemoveAttr("data-file-width")
-			filename, _ := url.QueryUnescape(path.Base(href))
 			s.SetAttr("src", filename)
 			s.Unwrap()
-			p := m.Config.CollectionMedia+filename
+			p := m.Config.CollectionMedia + filename
 			if _, err := os.Stat(p); errors.Is(err, os.ErrNotExist) {
-				//log.Debug().Msg("\nDownloading https://"+strings.TrimPrefix(href, "//"))
-				//DownloadFile(p, "https://"+strings.TrimPrefix(href, "//"), bar)
 				URLs = append(URLs, "https://"+strings.TrimPrefix(href, "//"))
 				filenames = append(filenames, filename)
 				currentTime := time.Now().Local()
 				_ = os.Chtimes(p, currentTime, currentTime)
 			}
-			//bar.Add(1)
 		})
+
+		if !m.GUIMode {
+			bar.Finish()
+			fmt.Println() // Add newline after progress bar
+		}
+
 		m.Log.Trace().Strs("URLs", URLs).Strs("filenames", filenames).Msg("Downloads starting")
 		common.DownloadFiles(ctx, m, URLs, filenames)
+		
+		if m.GUIMode {
+			runtime.EventsEmit(ctx, "download-progress", nil)
+		}
 		m.Log.Trace().Msg("Downloads completed")
-		//fmt.Print("\n")
 	},
 }
+
 
 
 
