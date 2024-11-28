@@ -177,7 +177,7 @@ func DownloadFiles(ctx context.Context, m *meta.Meta, URLs, filenames []string) 
 					Total:	   total,
 					Progress:	progress,
 					Speed:	   calculateAverageSpeed(totalBytesDownloaded, startTime),
-					CurrentFile: filenames[i], // Show just filename instead of full path
+					CurrentFile: filenames[i],
 					Operation:		"Downloading",
 				})
 			}

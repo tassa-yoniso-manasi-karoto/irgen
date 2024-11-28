@@ -21,7 +21,6 @@ import (
 	"context"
 	
 	"github.com/PuerkitoBio/goquery"
-	"github.com/rs/zerolog/log"
 	"github.com/gookit/color"
 	"github.com/k0kubun/pp"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -122,7 +121,7 @@ var wiki = ExtractorType{
 				}),
 			)
 		}
-
+		
 		imgs.Each(func(i int, s *goquery.Selection) {
 			href, found := s.Parent().Attr("href")
 			if !found {
@@ -216,28 +215,32 @@ func (Extractor ExtractorType) TakeImgAlong(ctx context.Context, m *meta.Meta, n
 				}
 			}
 		}
-		log.Info().Msg(fmt.Sprint(total, " images copied."))
+		m.Log.Info().Msg(fmt.Sprint(total, " images copied."))
 	} else {
 		Extractor.IMGProcessor(ctx, m, n)
 	}
 }
 
 
-func wikiPrefForHiRes(m *meta.Meta, href string) string {
+func wikiPrefForHiRes(m *meta.Meta, href string) (wanted string) {
 	resp, err := http.Get(href)
 	if err != nil {
 		m.Log.Error().Err(err).Str("href", href).Msg("error during GET request to img")
+		return
 	}
 	if resp.StatusCode != http.StatusOK {
-		log.Error().Str("HTTP status code", resp.Status).Msg("")
+		m.Log.Error().Str("HTTP status code", resp.Status).Msg("")
+		return
 	}
 	file, err := io.ReadAll(resp.Body)
 	if err != nil {
 		m.Log.Error().Err(err).Str("href", href).Msg("error ready body response")
+		return
 	}
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(file))
 	if err != nil {
-		m.Log.Fatal().Err(err).Msg("couldn't prepare the image-containing wikipage for parsing")
+		m.Log.Error().Err(err).Msg("couldn't prepare the image-containing wikipage for parsing")
+		return
 	}
 	var Thumbnails []ThumbnailType
 	var xs []int
@@ -264,16 +267,16 @@ func wikiPrefForHiRes(m *meta.Meta, href string) string {
 	sort.Stable(Rating)
 	for _, Thumbnail := range Thumbnails {
 		if Thumbnail.Pass {
-			href = Thumbnail.Href
+			wanted = Thumbnail.Href
 		}
 	}
 	// some low res img don't have any resized variants
 	if len(Thumbnails) == 0 {
 		doc.Find("a.internal").Each(func(index int, s *goquery.Selection) {
-			href, _ = s.Attr("href")
+			wanted, _ = s.Attr("href")
 		})
 	}
-	return href
+	return
 }
 
 

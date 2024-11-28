@@ -49,15 +49,11 @@ type NoteType struct {
 
 
 /* TODO
-minimize m.Log.Fatal() usage bc it crashes the GUI
-
-FIX CORE: "1 Notes in total"????
-
 add anki connect support for adding notes
 */
 
 
-func Execute(ctx context.Context, m *meta.Meta) {
+func Execute(ctx context.Context, m *meta.Meta) (success bool) {
 	m.LogConfig("config state at execution")
 	userGivenPath := m.Targ
 	m.Log.Debug().Msg("Execution started")
@@ -81,12 +77,14 @@ func Execute(ctx context.Context, m *meta.Meta) {
 	var err error
 	if filepath.IsAbs(userGivenPath) {
 		if !canStat(userGivenPath) {
-			m.Log.Fatal().Msg("No input file specified or default file location unaccessible: " + userGivenPath)
+			m.Log.Error().Msg("No input file specified or default file location unaccessible: " + userGivenPath)
+			return
 		}
 		Extractor = local
 		file, err = os.ReadFile(userGivenPath)
 		if err != nil {
-			m.Log.Fatal().Err(err).Msg("can stat but not read specified input file, check permissions")
+			m.Log.Error().Err(err).Msg("can stat but not read specified input file, check permissions")
+			return
 		}
 	} else {
 		for _, extractor := range extractors {
@@ -109,6 +107,7 @@ func Execute(ctx context.Context, m *meta.Meta) {
 		Str("lang", Article.Lang).
 		Str("Out", outFile).
 		Msg("init")
+	launch := time.Now()
 	if Extractor.Name != "local" {
 		resp, err := http.Get(userGivenPath)
 		if resp.StatusCode != http.StatusOK {
@@ -117,40 +116,37 @@ func Execute(ctx context.Context, m *meta.Meta) {
 			m.Log.Info().Str("Received response status", resp.Status).Msg("HTTP")
 		}
 		if err != nil {
-			m.Log.Fatal().Err(err).Msg("couldn't access URL")
+			m.Log.Error().Err(err).Msg("couldn't access URL")
+			return
 		}
 		file, err = io.ReadAll(resp.Body)
 		if err != nil {
-			m.Log.Fatal().Err(err).Msg("reading retrieved data failed")
+			m.Log.Error().Err(err).Msg("reading retrieved data failed")
+			return
 		}
 	}
-	launch := time.Now()
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(file))
 	if err != nil {
-		m.Log.Fatal().Err(err).Msg("couldn't prepare the document for parsing")
+		m.Log.Error().Err(err).Msg("couldn't prepare the document for parsing")
+		return
 	}
 	Extractor.Clean(doc, Article.Lang)
 	n := doc.Find(Extractor.ContentSelector)
 	// drag the headings up until they are direct children of the content-containing tag
 	// this make things safe to monkey-patch with Cut()
-	n.Children().EachWithBreak(func(i int, s *goquery.Selection) bool {
-		h := s.Find("h1,h2,h3,h4,h5,h6")
-		if h.Nodes == nil {
-			return false
-		}
-		s.ReplaceWithSelection(h)
-		return true
-	})
+	processHeadings(n)
 	Extractor.TakeImgAlong(ctx, m, n)
 	// this returns InnerHTML
 	content, err := n.Html()
 	if err != nil {
-		m.Log.Fatal().Err(err).Msg("couldn't access HTML content of file")
+		m.Log.Error().Err(err).Msg("couldn't access HTML content of file")
+		return
 	}
 	content = "<cutpattern>" + Cut(content) + "</cutpattern>"
 	doc, err = goquery.NewDocumentFromReader(strings.NewReader(content))
 	if err != nil {
-		m.Log.Fatal().Err(err).Msg("couldn't prepare the document for 2nd parsing")
+		m.Log.Error().Err(err).Msg("couldn't prepare the document for 2nd parsing")
+		return
 	}
 	Preprocess(m, doc)
 	var Notes []NoteType
@@ -182,7 +178,8 @@ func Execute(ctx context.Context, m *meta.Meta) {
 	})
 	csvout, err := os.OpenFile(outFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
-		m.Log.Fatal().Err(err).Msg("couldn't access output CSV file for writing")
+		m.Log.Error().Err(err).Msg("couldn't access output CSV file for writing")
+		return
 	}
 	writer := csv.NewWriter(csvout)
 	writer.Comma = '\t'
@@ -194,6 +191,8 @@ func Execute(ctx context.Context, m *meta.Meta) {
 	m.Log.Info().Int("total notes", len(Notes)).Msg("")
 	elapsed := time.Since(launch)
 	m.Log.Info().Msgf("Done in %s", elapsed)
+	success = true
+	return
 }
 
 
@@ -244,6 +243,31 @@ func RenderNode(n *html.Node) string {
 	w := io.Writer(&buf)
 	html.Render(w, n)
 	return buf.String()
+}
+
+
+func processHeadings(contentNode *goquery.Selection) {
+	// Keep processing until no more changes are needed
+	changed := true
+	for changed {
+		changed = false
+		
+		headings := contentNode.Find("h1,h2,h3,h4,h5,h6")
+		
+		headings.Each(func(i int, heading *goquery.Selection) {
+			parent := heading.Parent()
+			// Only process if parent is not the content selector
+			if !parent.Is(Extractor.ContentSelector) {
+				headingHtml, err := heading.Html()
+				if err == nil {
+					// Insert heading before its parent
+					parent.BeforeHtml("<" + heading.Get(0).Data + ">" + headingHtml + "</" + heading.Get(0).Data + ">")
+					heading.Remove()
+					changed = true
+				}
+			}
+		})
+	}
 }
 
 var reHeading = regexp.MustCompile("(?si)<h[0-9]+[^<]*?>(.*?)</h[0-9]+>")

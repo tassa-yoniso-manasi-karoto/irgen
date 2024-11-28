@@ -64,6 +64,7 @@ func run(c *urcli.Context, m *meta.Meta) {
 		return
 	}
 
+	common.QueryAnkiConnect(m, common.AnkiConnectQuery{"getMediaDirPath"})
 	m.Config.MaxTitles = c.Int("max-titles")
 	m.Config.ResXMax = c.Int("res-x-max")
 	m.Config.ResYMax = c.Int("res-y-max")
@@ -72,8 +73,10 @@ func run(c *urcli.Context, m *meta.Meta) {
 	if m.Targ == "" && c.Args().First() != "" {
 		m.Targ = c.Args().First()
 	}
-
-	core.Execute(context.TODO(), m)
+	
+	if success := core.Execute(context.TODO(), m); !success {
+		os.Exit(1)
+	}
 }
 
 
