@@ -1,4 +1,4 @@
-***Project status: pre-release***. Incremental reading note generator for Anki supporting Wikipedia & local HTML files
+***Project status: alpha***. Incremental reading note generator for Anki supporting Wikipedia & local HTML files
 
 At its core it just splits the HTML file using the heading tags into many notes.
 

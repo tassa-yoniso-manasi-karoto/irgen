@@ -98,12 +98,12 @@ func Execute(ctx context.Context, m *meta.Meta) (success bool) {
 			}
 		}
 	}
-	m.Log.Info().
+	m.Log.Debug().
 		Str("source", Extractor.Name).
 		Str("lang", Article.Lang).
-		Str("Out", outFile).
-		Msg("init")
-	m.Log.Trace().Str("deckName",deckName).Str("outFile",outFile).Msg("")
+		Str("deckName",deckName).
+		Str("outFile",outFile).
+		Msg("")
 	launch := time.Now()
 	if Extractor.Name != "local" {
 		resp, err := http.Get(userGivenPath)
