@@ -63,8 +63,11 @@ func run(c *urcli.Context, m *meta.Meta) {
 		gui.Run(m)
 		return
 	}
-
-	common.QueryAnkiConnect(m, common.AnkiConnectQuery{"getMediaDirPath"})
+	// copy/dl img will occur before the final addNote import,
+	// hence should set MediaDir already
+	if ok := common.QueryAnkiConnectMediaDir(m); ok {
+		m.Log.Info().Msg("AnkiConnect detected")
+	}
 	m.Config.MaxTitles = c.Int("max-titles")
 	m.Config.ResXMax = c.Int("res-x-max")
 	m.Config.ResYMax = c.Int("res-y-max")

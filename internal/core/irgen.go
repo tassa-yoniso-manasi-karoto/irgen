@@ -29,10 +29,11 @@ var (
 	CurrentDir string
 	ContentSelector = "body"
 	WantedTitleLen = 3
-	inFile string
 	reCleanHTML = regexp.MustCompile(`^\s*(.*?)\s*$`)
 	Extractor ExtractorType
 	Article ArticleType
+	outFile, deckName string
+	IR3Fields = []string{"ID", "Title", "Text", "Context"}
 )
 
 type ArticleType struct {
@@ -48,25 +49,18 @@ type NoteType struct {
 }
 
 
-/* TODO
-add anki connect support for adding notes
-*/
-
-
 func Execute(ctx context.Context, m *meta.Meta) (success bool) {
 	m.LogConfig("config state at execution")
 	userGivenPath := m.Targ
+	Article.Name = strings.TrimSuffix(filepath.Base(userGivenPath), filepath.Ext(userGivenPath))
 	m.Log.Debug().Msg("Execution started")
 	if m.Config.CollectionMedia == "" {
 		m.Log.Error().Msg("Images can't be automatically imported because the path to collection.media has not been provided.")
 	}
-	inFile = userGivenPath
-	Article.Name = filepath.Base((userGivenPath)[:len(userGivenPath) - len(filepath.Ext(userGivenPath))])
-	var outFile string
 	if m.Config.DestDir == "" {
-		outFile = strings.TrimSuffix(userGivenPath, filepath.Ext(userGivenPath)) + ".txt"
+		outFile = filepath.Join(filepath.Dir(userGivenPath), Article.Name + ".txt")
 	} else {
-		outFile = m.Config.DestDir + strings.TrimSuffix(filepath.Base(userGivenPath), filepath.Ext(userGivenPath)) + ".txt"
+		outFile = filepath.Join(m.Config.DestDir, Article.Name + ".txt")
 	}
 	m.Log.Debug().
 		Bool("AbsPath?", filepath.IsAbs(userGivenPath)).
@@ -97,7 +91,9 @@ func Execute(ctx context.Context, m *meta.Meta) (success bool) {
 					Article.Name, _ = url.QueryUnescape(extractor.Validator.FindStringSubmatch(userGivenPath)[2])
 					Article.Name = strings.ReplaceAll(Article.Name, "_", " ")
 				}
-				outFile = fmt.Sprint(m.Config.DestDir, Extractor.Name, "–",Article.Name, ".txt")
+				// deckName needed because we don't want the article named to be preceeded by "Wikipedia -" in Anki 
+				deckName = fmt.Sprint(Extractor.Name, " - ",Article.Name)
+				outFile = filepath.Join(m.Config.DestDir, deckName + ".txt")
 				break
 			}
 		}
@@ -107,6 +103,7 @@ func Execute(ctx context.Context, m *meta.Meta) (success bool) {
 		Str("lang", Article.Lang).
 		Str("Out", outFile).
 		Msg("init")
+	m.Log.Trace().Str("deckName",deckName).Str("outFile",outFile).Msg("")
 	launch := time.Now()
 	if Extractor.Name != "local" {
 		resp, err := http.Get(userGivenPath)
@@ -176,17 +173,46 @@ func Execute(ctx context.Context, m *meta.Meta) (success bool) {
 		Note.Txt = gohtml.Format(Note.Txt)
 		Notes = append(Notes, Note)
 	})
-	csvout, err := os.OpenFile(outFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
-	if err != nil {
-		m.Log.Error().Err(err).Msg("couldn't access output CSV file for writing")
-		return
-	}
-	writer := csv.NewWriter(csvout)
-	writer.Comma = '\t'
-	defer csvout.Close()
-	defer writer.Flush()
-	for _, Note := range Notes {
-		_ = writer.Write([]string{Note.ID, Note.Title, Note.Txt, Note.Context})
+	if ok := common.QueryAnkiConnectMediaDir(m); ok {
+		if err := common.VerifyNoteTypeFields(m, "IR3", IR3Fields); err != nil {
+			m.Log.Error().
+				Err(err).
+				Msg("fields for Notetype IR3 reported by AnkiConnect aren't the ones that irgen requires")
+			return
+		}
+
+		common.CreateDeck(m, deckName)
+		for _, Note := range Notes {
+			fields := map[string]string{
+				"ID":      Note.ID,
+				"Title":   Note.Title,
+				"Text":    Note.Txt,
+				"Context": Note.Context,
+			}
+			if err := common.AddNote(m, deckName, "IR3", fields, Note.Tags); err != nil {
+				m.Log.Error().
+					Str("title", Note.Title).
+					Msg("couldn't create following note")
+			} else {
+				m.Log.Trace().
+					Str("title", Note.Title).
+					Msg("created note")
+			}
+		}
+	} else {
+		m.Log.Warn().Msg("AnkiConnect unavailable, writing notes to TSV (CSV) file to import them manually")
+		csvout, err := os.OpenFile(outFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+		if err != nil {
+			m.Log.Error().Err(err).Msg("couldn't access output CSV file for writing")
+			return
+		}
+		writer := csv.NewWriter(csvout)
+		writer.Comma = '\t'
+		defer csvout.Close()
+		defer writer.Flush()
+		for _, Note := range Notes {
+			_ = writer.Write([]string{Note.ID, Note.Title, Note.Txt, Note.Context})
+		}
 	}
 	m.Log.Info().Int("total notes", len(Notes)).Msg("")
 	elapsed := time.Since(launch)

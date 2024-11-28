@@ -53,8 +53,8 @@ func (a *App) Process(params ProcessParams) string {
 }
 
 
-func (a *App) QueryAnkiConnect4MediaDir(q common.AnkiConnectQuery) bool {
-	return common.QueryAnkiConnect(a.m, q)
+func (a *App) QueryAnkiConnect4MediaDir() bool {
+	return common.QueryAnkiConnectMediaDir(a.m)
 }
 
 func (a *App) OpenFileDialog() (string, error) {

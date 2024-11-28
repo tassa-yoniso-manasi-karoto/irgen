@@ -26,51 +26,146 @@ const (
 	jsonMIME = "application/json"
 )
 
+var userWasWarned bool
 
-
-type AnkiConnectQuery struct {
-	Action string `json:"action"`
+type AnkiConnectRequest struct {
+	Action  string      `json:"action"`
+	Version int         `json:"version"`
+	Params  interface{} `json:"params,omitempty"`
 }
 
-type AnkiConnectRespGetMediaDirPath struct {
-	Result,	Error string
+type AnkiConnectResponse struct {
+	Result json.RawMessage `json:"result"`
+	Error  interface{}     `json:"error"`
 }
 
-var ankiConnectQueryTemplate = `{
-    "action": "%s",
-    "version": 6
-}`
+func SendAnkiConnectRequest(m *meta.Meta, action string, params interface{}) (json.RawMessage, error) {
+	request := AnkiConnectRequest{
+		Action:  action,
+		Version: 6,
+		Params:  params,
+	}
 
-func QueryAnkiConnect(m *meta.Meta, q AnkiConnectQuery) (ok bool) {
-	jsonStr := []byte(fmt.Sprintf(ankiConnectQueryTemplate, q.Action))
-	resp, err := http.Post("http://localhost:8765", jsonMIME, bytes.NewBuffer(jsonStr))
+	jsonData, err := json.Marshal(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	resp, err := http.Post("http://localhost:8765", jsonMIME, bytes.NewBuffer(jsonData))
 	if err != nil {
 		m.Log.Error().
 			Err(err).
 			Msg("POST request to AnkiConnect failed")
-		return
+		return nil, err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
+
+	var response AnkiConnectResponse
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		m.Log.Error().
 			Err(err).
-			Msg("couldn't read response of AnkiConnect after getMediaDirPath")
-		return
+			Msg("couldn't decode AnkiConnect response")
+		return nil, err
 	}
-	var response AnkiConnectRespGetMediaDirPath
-	json.Unmarshal(body, &response)
-	if response.Error != "" {
-		pp.Println(response)
+
+	if response.Error != nil {
+		str := fmt.Sprint("AnkiConnect: ", response.Error)
+		m.Log.Error().Msg(str)
+		return nil, errors.New(str)
+	}
+
+	return response.Result, nil
+}
+
+func QueryAnkiConnect(m *meta.Meta, q AnkiConnectRequest) (result string, err error) {
+	response, err := SendAnkiConnectRequest(m, q.Action, nil)
+	if err != nil {
+		return "", err
+	}
+
+	var resultStr string
+	if err := json.Unmarshal(response, &resultStr); err != nil {
+		return "", err
+	}
+	m.Log.Debug().
+		Str("Action", q.Action).
+		RawJSON("response", response).
+		Msg("AnkiConnect request successful")
+	return resultStr, nil
+}
+
+
+func QueryAnkiConnectMediaDir(m *meta.Meta) bool {
+	q := AnkiConnectRequest{Action: "getMediaDirPath", Version: 6}
+	result, err := QueryAnkiConnect(m, q)
+	if err == nil {
+		m.Config.CollectionMedia = result
+	} else if !userWasWarned {
+		userWasWarned = true
 		m.Log.Error().
-			//Str("RawAnkiConnectErr", response.Error).
-			Err(errors.New(response.Error)).
-			Msg("AnkiConnect returned an error when requesting getMediaDirPath")
-		return
+			Err(err).
+			Msg("Failed to connect to AnkiConnect." +
+			" Please make sure Anki is running and AnkiConnect is properly installed.")
 	}
-	m.Config.CollectionMedia = response.Result
-	m.Log.Debug().Str("MediaDir", response.Result).Msg("")
-	m.Log.Info().Msg("AnkiConnect detected")
+	return err == nil
+}
+
+
+
+func VerifyNoteTypeFields(m *meta.Meta, modelName string, expectedFields []string) error {
+	params := map[string]interface{}{
+		"modelName": modelName,
+	}
+
+	response, err := SendAnkiConnectRequest(m, "modelFieldNames", params)
+	if err != nil {
+		return fmt.Errorf("failed to verify note type fields: %w", err)
+	}
+
+	var fields []string
+	if err := json.Unmarshal(response, &fields); err != nil {
+		return fmt.Errorf("failed to parse fields response: %w", err)
+	}
+
+	if !compareFields(fields, expectedFields) {
+		return fmt.Errorf("note type fields mismatch. Expected: %v, Got: %v", expectedFields, fields)
+	}
+
+	return nil
+}
+
+
+func CreateDeck(m *meta.Meta, deckName string) error {
+	params := map[string]interface{}{
+		"deck": deckName,
+	}
+
+	_, err := SendAnkiConnectRequest(m, "createDeck", params)
+	return err
+}
+
+
+func AddNote(m *meta.Meta, deckName string, modelName string, fields map[string]string, tags []string) error {
+	params := map[string]interface{}{
+		"note": map[string]interface{}{
+			"deckName":  deckName,
+			"modelName": modelName,
+			"fields":    fields,
+			"tags":      tags,
+		},
+	}
+
+	_, err := SendAnkiConnectRequest(m, "addNote", params)
+	return err
+}
+
+
+func compareFields(actual, expected []string) bool {
+	for i, field := range actual {
+		if len(expected)-1 >= i && field != expected[i] {
+			return false
+		}
+	}
 	return true
 }
 
@@ -127,8 +222,10 @@ func DownloadFiles(ctx context.Context, m *meta.Meta, URLs, filenames []string) 
 	if len(URLs) != len(filenames) {
 		return errors.New("URLs and filenames slices must have the same length")
 	}
-
 	total := len(URLs)
+	if total == 0 {
+		return nil
+	}
 	current := 0
 	failed := 0
 	startTime := time.Now()

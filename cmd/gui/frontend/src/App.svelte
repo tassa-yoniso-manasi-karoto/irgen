@@ -24,9 +24,7 @@
     
     async function checkAnkiConnect() {
         try {
-            const result = await window.go.gui.App.QueryAnkiConnect4MediaDir({
-                action: "getMediaDirPath"
-            });
+            const result = await window.go.gui.App.QueryAnkiConnect4MediaDir();
             if (!result) {
                 ankiConnectError = "Failed to connect to AnkiConnect. Please make sure Anki is running and AnkiConnect is properly installed.";
                 alertVisible = true;

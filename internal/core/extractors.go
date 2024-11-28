@@ -80,7 +80,7 @@ var wiki = ExtractorType{
 		})
 	},
 	MustSkip: func(TitleStack []*html.Node) bool {
-		if contains([]string{"Notes", "See also", "External links", "References" , "Citations", "Bibliography"}, Text(TitleStack[1])) {
+		if contains([]string{"Notes", "See also", "External links", "References" , "Citations", "Footnotes", "Bibliography"}, Text(TitleStack[1])) {
 			return true
 		}
 		return false
@@ -190,11 +190,11 @@ var wiki = ExtractorType{
 
 func (Extractor ExtractorType) TakeImgAlong(ctx context.Context, m *meta.Meta, n *goquery.Selection) {
 	if Extractor.Name == "local"  {
-		files, _ := ioutil.ReadDir(filepath.Dir(inFile))
+		files, _ := ioutil.ReadDir(filepath.Dir(m.Targ))
 		var total int
 		for _, file := range files {
 			for _, ext := range []string{".jpg", ".jpeg", ".png", ".tif", ".tiff", ".gif", ".svg", ".webp", ".avif"} {
-				fpath := filepath.Dir(inFile) + string(os.PathSeparator) + file.Name()
+				fpath := filepath.Join(filepath.Dir(m.Targ), file.Name())
 				_, err := os.Stat(m.Config.CollectionMedia + file.Name())
 				if ext == filepath.Ext(file.Name()) && errors.Is(err, os.ErrNotExist) {
 					from, err := os.Open(fpath)
