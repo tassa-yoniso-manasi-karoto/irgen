@@ -117,18 +117,20 @@
         <button on:click={clearLogs}>Clear</button>
     </div>
     
-    <div 
-        class="log-container" 
-        bind:this={scrollContainer} 
-        on:scroll={handleScroll}
-    >
-        {#each logs as log}
-            <div class="log-entry">
-                <span class="time">{log.time}</span>
-                <span class="level {getLevelClass(log.level)}">{log.level}</span>
-                <span class="message">{log.message}</span>
-            </div>
-        {/each}
+    <div class="content-wrapper">
+        <div 
+            class="log-container" 
+            bind:this={scrollContainer} 
+            on:scroll={handleScroll}
+        >
+            {#each logs as log}
+                <div class="log-entry">
+                    <span class="time">{log.time}</span>
+                    <span class="level {getLevelClass(log.level)}">{log.level}</span>
+                    <span class="message">{log.message}</span>
+                </div>
+            {/each}
+        </div>
         
         {#if downloadProgress}
             <div class="progress-section">
@@ -160,6 +162,14 @@
         border-radius: 4px;
     }
 
+    .content-wrapper {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0; /* Important for proper flexbox behavior */
+        position: relative;
+    }
+
     .controls {
         padding: 4px 8px;
         border-bottom: 1px solid #333;
@@ -173,12 +183,6 @@
         display: flex;
         align-items: center;
         gap: 4px;
-    }
-
-    .log-container {
-        flex: 1;
-        overflow-y: auto;
-        padding: 0;
     }
 
     .log-entry {
@@ -251,8 +255,10 @@
     }
     
     .log-container {
-        scrollbar-width: thin; /* Firefox */
-        scrollbar-color: #444444 #1e1e1e; /* Firefox */
+        flex: 1;
+        overflow-y: auto;
+        padding: 0;
+        min-height: 0; /* Important for proper flexbox behavior */
     }
 
     /* Webkit scrollbar styles - unified for both directions */
@@ -279,24 +285,31 @@
     .log-container::-webkit-scrollbar-corner {
         background: #1e1e1e;
     }
-
-	/* Add specific styling for the checkbox to ensure it's clickable */
-	.auto-scroll {
-		position: relative;
-		z-index: 10;
-	}
-
-	input[type="checkbox"] {
-		cursor: pointer;
-	}
-
-	label {
-		cursor: pointer;
-		user-select: none;
-	}
-	.progress-section {
-		transition: opacity 0.2s ease-in-out;
-	}
+    
+    /* Add specific styling for the checkbox to ensure it's clickable */
+    .auto-scroll {
+    	position: relative;
+    	z-index: 10;
+    }
+    
+    input[type="checkbox"] {
+    	cursor: pointer;
+    }
+    
+    label {
+    	cursor: pointer;
+    	user-select: none;
+    }
+    
+    .progress-section {
+        position: sticky;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #252525;
+        border-top: 1px solid #333;
+        z-index: 10;
+    }
 
 </style>
 

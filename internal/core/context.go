@@ -29,9 +29,12 @@ var (
 	}
 )
 
+// Originally I used the field Source as Context, hence Capillary was chosen.
+// Put together these functions feed the Source in various volumes with the desired content gathered along.
 type Capillary func(NoteType, []*html.Node, []string, string, int) (ObjectSlice []ObjectT)
 
 
+// Move images at the bottom of Text to the beginning of Context (to reimplement)
 // TODO func MvAddendumToCxt(n *html.Node, TXT string) (string, SRC string){
 
 
@@ -95,7 +98,7 @@ func (Note NoteType) FromSuperiorAndDescendants(tStack []*html.Node, _ []string,
 }
 
 func (Note NoteType) superior(includeDescendants int, tStack []*html.Node, fstr string, scope int) (ObjectSlice []ObjectT) {
-	logger := zerolog.Nop() //zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).With().Timestamp().Logger()
+	logger := zerolog.Nop() // TODO update logger !
 	logger.Debug().
 		Str("fstr", fstr).
 		Int("scope", scope).

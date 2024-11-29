@@ -63,7 +63,6 @@ Apple makes it a pain to cross-compile programs with a GUI for MacOS so only the
 
 ## TODO
 - update README docs
-- zoom img with JS
 - reimplement MvAddendumToCxt
 - "pinned" user-defined group of high-value image that can be displayed none
 

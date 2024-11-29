@@ -50,7 +50,8 @@ func New() *Meta {
 }
 
 func (m *Meta) LoadConfig() error {
-	if strings.Contains(os.Args[0], "-dev-") {		
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	if false && strings.Contains(os.Args[0], "-dev-") {		
 		m.DevMode = true
 		zerolog.SetGlobalLevel(zerolog.TraceLevel)
 		m.Log.Trace().Msg("Running in development with trace logging")

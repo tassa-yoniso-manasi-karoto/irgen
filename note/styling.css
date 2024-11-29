@@ -1,121 +1,160 @@
 .card {
- font-size: 22px !important;
- text-align: left;
- margin: 5px auto;
+    font-size: 22px !important;
+    text-align: left;
+    margin: 5px auto;
 }
-.mobile, .mobile .card {
-  font-size: 100% !important;
+.mobile,
+.mobile .card {
+    font-size: 100% !important;
 }
-
-.heading::after{
-  content: ":";
+.heading::after {
+    content: ":";
 }
-.del::after{
-  content: " ";
+.del::after {
+    content: " ";
 }
-
-.mobile .else2 {
- min-width: 0%;
- max-width:100%;
- margin:auto !important;
- display: flex;
- height:auto;
- flex-wrap: wrap;
- align-content: center;
- position:static;
-}
-
-
-.cxt {
- font-size: 15px;
-}
-
-.cxtcol {
- overflow: auto;
-}
-
-.cxtcol img {
- width: auto;
- display: block;
- height:auto;
- margin-left: auto;
- margin-right: auto;
- max-width: 90%;
-}
-
-span[style=blist] {
- font-weight: bold;
- font-variant: small-caps;
- font-size: 29px;
- color: #8e8ea3;
-}
-
-.front {
- width: 800px;
- margin-left: auto;
- margin-right: auto;
-}
-
 .squel {
- table-layout: fixed;
- width: 100%;
+    table-layout: fixed;
+    width: 100%;
+}
+.src {
+    position: fixed;
+    overflow: auto;
+    left: 0;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    -ms-overflow-style: none; /* IE and Edge */
 }
 
+.src::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+}
 
+.srctxt {
+    font-size: 15px;
+}
+.titleFront {
+    font-size: 23px;
+    text-decoration: underline;
+    font-weight: bold;
+    text-align: center;
+}
+.titleBack {
+    font-size: 23px;
+    text-align: left;
+    text-decoration: underline;
+    font-weight: bold;
+}
+.mobile .else2 {
+    min-width: 0%;
+    max-width: 100%;
+    margin: auto !important;
+    display: flex;
+    height: auto;
+    flex-wrap: wrap;
+    align-content: center;
+    position: static;
+}
+.cxt {
+    font-size: 15px;
+}
+.cxtcol {
+    overflow: auto;
+}
+.cxtcol img {
+    width: auto;
+    display: block;
+    height: auto;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 90%;
+}
+span[style="blist"] {
+    font-weight: bold;
+    font-variant: small-caps;
+    font-size: 29px;
+    color: #8e8ea3;
+}
+.front {
+    width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.squel {
+    table-layout: fixed;
+    width: 100%;
+}
 .else {
- position:fixed;
- /* force the second scrollbar to be on the side of the screen */
- min-width: 50%;
- max-width: 50%;
- overflow-y: scroll;
- height: 100%;
+    position: fixed;
+    /* force the second scrollbar to be on the side of the screen */
+    right: 0;
+    top: 0;
+    min-width: 50%;
+    max-width: 50%;
+    overflow-y: scroll;
+    height: 100%;
 }
-
 .else img {
- max-width: 100%;
- width: auto;
- height: auto;
- max-height: 27vh;
- max-width: 45vh;
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    max-height: 27vh;
+    max-width: 45vh;
 }
-
-
 .else2 {
- /* force the second scrollbar to be on the side of the screen */
- min-width: 55%;
- max-width: 55%;
- margin:auto !important;
- display: flex;
- height:auto;
- flex-wrap: wrap;
- align-content: center;
+    /* force the second scrollbar to be on the side of the screen */
+    min-width: 55%;
+    max-width: 55%;
+    margin: auto !important;
+    height: auto;
+    flex-wrap: wrap;
+    align-content: center;
 }
-
 .else2 img {
-  width: auto;
-  max-width: 100%;
-  height: auto;
+    width: auto;
+    max-width: 100%;
+    height: auto;
 }
-
-
-.title2 {
-  font-size: 23px;
-  text-decoration: underline;
-  font-weight: bold;
-  text-align: center;
-}
-
-.title {
-  font-size: 23px;
-  text-align: left;
-  text-decoration: underline;
-  font-weight: bold;
-}
-
-
-
 ul {
     margin: 2px;
 }
 
 
+/* Image zoom */
+img {
+    cursor: pointer;
+}
+.modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background-color: #101010dd;
+    z-index: 9999 !important;
+}
+.modal-content {
+    position: fixed;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    object-fit: contain;
+}
+.close-btn {
+    position: fixed;
+    top: 15px;
+    right: 35px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 10000;
+}
+
+.cardtype {
+    font-size: 16px;
+    position: fixed;
+    top: 97%;
+    left: 48.6%;
+}

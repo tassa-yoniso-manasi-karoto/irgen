@@ -1,0 +1,238 @@
+{{#Context}}
+<table class=squel>
+    <tbody>
+        <tr ="width:100%">
+            <td class=src>
+                <div class=srctxt>{{Context}}</div>
+            </td>
+            <td class=else>
+                <div class=titleBack>{{RealTitle}}</div>
+                <div class="ir-text">{{Text}}<br><br></div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+{{/Context}}
+{{^Context}}
+<br><table class=squel>
+    <tbody>
+        <tr ="width:100%">
+                <div class=titre2>{{RealTitle}}</div>
+            <td class=else2>
+                <div class="ir-text">{{Text}}<br><br></div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+{{/Context}}
+
+<span class="cardtype">IR</span>
+
+<div id="imageModal" class="modal">
+    <span class="close-btn">&times;</span>
+    <img class="modal-content" id="enlargedImage">
+</div>
+
+<!-- Enlarges images into a near fullscreen viewport when they are clicked -->
+<script>
+(function() {
+    // Reset any previous state
+    if (window.imageViewerCleanup) {
+        window.imageViewerCleanup();
+    }
+
+    // Store cleanup function globally
+    window.imageViewerCleanup = function() {
+        const modal = document.getElementById('imageModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+        
+        // Remove all previous event listeners from images
+        const allImages = document.getElementsByTagName('img');
+        Array.from(allImages).forEach(img => {
+            img.onclick = null;
+            delete img.hasImageViewer;
+        });
+
+        // Clear any existing observers
+        if (window.imageViewerObserver) {
+            window.imageViewerObserver.disconnect();
+            delete window.imageViewerObserver;
+        }
+
+        // Reset initialization flag
+        delete window.imageViewerInitialized;
+    };
+
+    function initializeImageViewer() {
+        // Check if already initialized
+        if (window.imageViewerInitialized) return;
+        window.imageViewerInitialized = true;
+
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('enlargedImage');
+        const closeBtn = document.getElementsByClassName('close-btn')[0];
+        let lastClickTime = 0;
+        const clickDelay = 300; // Prevent double-clicks
+
+        function getImageDimensions(img) {
+            const rect = img.getBoundingClientRect();
+            return {
+                left: rect.left,
+                top: rect.top,
+                width: rect.width,
+                height: rect.height
+            };
+        }
+
+        function resetState() {
+            window.imageViewerCleanup();
+            attachImageListeners(); // Reattach listeners after reset
+        }
+
+        function animateToFullscreen(originalImage) {
+            const originalDims = getImageDimensions(originalImage);
+            
+            modalImg.style.left = originalDims.left + 'px';
+            modalImg.style.top = originalDims.top + 'px';
+            modalImg.style.width = originalDims.width + 'px';
+            modalImg.style.height = originalDims.height + 'px';
+            
+            modal.style.display = 'block';
+            modalImg.src = originalImage.src;
+
+            setTimeout(() => {
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                const scale = Math.min(
+                    (viewportWidth * 0.95) / originalDims.width,
+                    (viewportHeight * 0.95) / originalDims.height
+                );
+                const finalWidth = originalDims.width * scale;
+                const finalHeight = originalDims.height * scale;
+                
+                modalImg.style.left = (viewportWidth - finalWidth) / 2 + 'px';
+                modalImg.style.top = (viewportHeight - finalHeight) / 2 + 'px';
+                modalImg.style.width = finalWidth + 'px';
+                modalImg.style.height = finalHeight + 'px';
+            }, 50);
+        }
+
+        function animateToOriginal(callback) {
+            const allImages = document.getElementsByTagName('img');
+            const originalImage = Array.from(allImages)
+                .find(img => img.src === modalImg.src && img !== modalImg);
+            
+            if (originalImage) {
+                const originalDims = getImageDimensions(originalImage);
+                
+                modalImg.style.left = originalDims.left + 'px';
+                modalImg.style.top = originalDims.top + 'px';
+                modalImg.style.width = originalDims.width + 'px';
+                modalImg.style.height = originalDims.height + 'px';
+
+                modalImg.addEventListener('transitionend', function handler() {
+                    modalImg.removeEventListener('transitionend', handler);
+                    resetState();
+                    if (callback) callback();
+                });
+            } else {
+                resetState();
+                if (callback) callback();
+            }
+        }
+
+        function handleImageClick(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const currentTime = new Date().getTime();
+            if (currentTime - lastClickTime < clickDelay) {
+                return; // Prevent double-clicks
+            }
+            lastClickTime = currentTime;
+
+            setTimeout(() => {
+                animateToOriginal();
+            }, 10);
+        }
+
+        function attachImageListeners() {
+            const allImages = document.getElementsByTagName('img');
+            Array.from(allImages).forEach(img => {
+                if (img !== modalImg && !img.hasImageViewer) {
+                    img.hasImageViewer = true;
+                    img.onclick = function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        animateToFullscreen(this);
+                    }
+                }
+            });
+        }
+
+        // Modal image click handlers
+        modalImg.onclick = handleImageClick;
+        modalImg.addEventListener('click', handleImageClick, true);
+
+        closeBtn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            animateToOriginal();
+        }
+
+        modal.onclick = function(event) {
+            const currentTime = new Date().getTime();
+            if (currentTime - lastClickTime < clickDelay) {
+                return;
+            }
+            lastClickTime = currentTime;
+
+            if (event.target === modal || event.target === modalImg) {
+                event.preventDefault();
+                event.stopPropagation();
+                setTimeout(() => {
+                    animateToOriginal();
+                }, 10);
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === "Escape" && modal.style.display === 'block') {
+                animateToOriginal();
+            }
+        });
+
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            if (modal.style.display === 'block') {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    const originalImage = Array.from(document.getElementsByTagName('img'))
+                        .find(img => img.src === modalImg.src && img !== modalImg);
+                    if (originalImage) {
+                        animateToFullscreen(originalImage);
+                    }
+                }, 100);
+            }
+        });
+
+        // Initial attachment of listeners
+        attachImageListeners();
+
+        // MutationObserver to handle dynamically added images
+        window.imageViewerObserver = new MutationObserver(function(mutations) {
+            attachImageListeners();
+        });
+
+        window.imageViewerObserver.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+
+    // Try to initialize with a delay
+    setTimeout(initializeImageViewer, 100);
+})();
+</script>
