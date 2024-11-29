@@ -33,19 +33,26 @@ var (
 	Extractor ExtractorType
 	Article ArticleType
 	outFile, deckName string
-	IR3Fields = []string{"ID", "Title", "Text", "Context"}
+	IR3Fields = []string{"Title", "RealTitle", "Text", "Context"}
 )
 
 type ArticleType struct {
 	Name, Lang string
 }
 
-// WARNING: Don't confuse Note.Context (image enriched field of the note-to-be) and Go's context!
+/* WARNING:
+ * To retain compatibility with the IR anki addon without change, "Title" in
+ * the source code and "Title" in the Notetype refers to different things. See below.
+ * Don't confuse Note.Context (image enriched field of the note-to-be) and Go's context!
+ */
 type NoteType struct {
-	QNode *goquery.Selection
-	ID, Title, Txt, Context string
-	Tags []string
-	hasContent bool
+	QNode		*goquery.Selection
+	ID		string // aka Title in the NoteType
+	Title		string // aka RealTitle in the NoteType
+	Txt		string
+	Context		string
+	Tags		[]string
+	hasContent	bool
 }
 
 
@@ -184,10 +191,10 @@ func Execute(ctx context.Context, m *meta.Meta) (success bool) {
 		common.CreateDeck(m, deckName)
 		for _, Note := range Notes {
 			fields := map[string]string{
-				"ID":      Note.ID,
-				"Title":   Note.Title,
-				"Text":    Note.Txt,
-				"Context": Note.Context,
+				IR3Fields[0]:	Note.ID,
+				IR3Fields[1]:	Note.Title,
+				IR3Fields[2]:	Note.Txt,
+				IR3Fields[3]:	Note.Context,
 			}
 			if err := common.AddNote(m, deckName, "IR3", fields, Note.Tags); err != nil {
 				m.Log.Error().
@@ -235,14 +242,14 @@ func (Rating RatingType) Swap(i, j int) {
 func fmtTl(TitleStack []*html.Node, max int) (s string) {
 	added := 0
 	for _, n := range(TitleStack[1:]) {
-		if max < 0 {
-			s = "❱"+Text(n)+s
-		} else if added < max {
+		if max < 0 { // for ID (Title in Anki)
+			s = ": "+Text(n)+s
+		} else if added < max { // for Title (RealTitle in Anki)
 			s = "<span class=heading>"+Text(n)+"</span><span class=del></span>"+s	
 			added += 1		
 		}
 	}
-	s = strings.TrimPrefix(s, "❱")
+	s = strings.TrimPrefix(s, ": ")
 	if s == "" {
 		s = "<span class=heading>"+Article.Name+"</span>"
 	}

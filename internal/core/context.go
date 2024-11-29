@@ -32,7 +32,7 @@ var (
 type Capillary func(NoteType, []*html.Node, []string, string, int) (ObjectSlice []ObjectT)
 
 
-// TODO func MoveTxtAddendumToSrc(n *html.Node, TXT string) (string, SRC string){
+// TODO func MvAddendumToCxt(n *html.Node, TXT string) (string, SRC string){
 
 
 func (Note NoteType) MkCxt(m *meta.Meta, loc Location, tStack []*html.Node/*, tRefStack []string*/) (src string) {
