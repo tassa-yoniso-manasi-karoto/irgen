@@ -12,6 +12,7 @@ However it is capable of creating exceptionally high context notes that would ot
 
 ## How to use the GUI
 Make sure to have Anki open with AnkiConnect installed. *(If the video below doesn't play open it in a new tab)*
+
 <img width=600 src="https://github.com/tassa-yoniso-manasi-karoto/irgen/blob/main/demo/GUI.webp">
 
 ## How to use
