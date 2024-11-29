@@ -3,6 +3,8 @@ package cli
 import (
 	"os"
 	"context"
+	"runtime"
+	"slices"
 	
 	urcli "github.com/urfave/cli/v2"
 	"github.com/gookit/color"
@@ -13,6 +15,15 @@ import (
 	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/meta"
 	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/common"
 )
+
+var supported = []string{
+	"linux/amd64",
+	"linux/arm64",
+	"windows/amd64",
+	"windows/arm64",
+	"darwin/amd64",
+	"darwin/arm64",
+}
 
 func Execute() {
 	m := meta.New()
@@ -52,13 +63,18 @@ func Execute() {
 }
 
 func run(c *urcli.Context, m *meta.Meta) {
-	m.Log.Trace().Strs("os.Args", os.Args).Msg("")
+	platform := runtime.GOOS+"/"+runtime.GOARCH
+	m.Log.Trace().Strs("os.Args", os.Args).Str("platform", platform).Msg("")
 	m.Log.Debug().
-		Bool("startAsGUI?", c.NArg() == 0 && !c.IsSet("input")).
+		Bool("mustStartAsGUI?", c.NArg() == 0 && !c.IsSet("input")).
 		Int("c.NArg()", c.NArg()).
-		Bool("inputFlagNotSet", !c.IsSet("input")).
+		Bool("inputFlagPassed", c.IsSet("input")).
+		Bool("GUIsupported", slices.Contains(supported, platform)).
 		Msg("")
 	if c.NArg() == 0 && !c.IsSet("input") {
+		if !slices.Contains(supported, platform) {
+			m.Log.Fatal().Msgf("GUI not supported on this platform: %s. This is CLI binary.", platform)
+		}
 		m.GUIMode = true
 		gui.Run(m)
 		return

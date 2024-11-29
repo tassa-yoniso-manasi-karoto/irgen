@@ -50,6 +50,12 @@ _(h1, h2... are the heading tags that will appear in the raw HTML you don't need
 - **Fn** and **FnScope** work as pairs. FnScope is the relative position above the heading of a note-to-be. In the example above 1 would correspond to the heading "less important" located one level above in importance to the heading of the note that contains Lorem ipsum with the snake. Currently only FromSuperior and FromSuperiorAndDescendants are implemented. ***FromSuperior*** will retrieve only the image of the camera where as ***FromSuperiorAndDescendants*** will capture both the image of the camera and the one with the helicopter.
 - **ResXMax** and **ResYMax**: on wikipedia each image is available in various resolutions and irgen will automatically download the highest quality available but you can limit the maximal resolution accepted using these values.
 
+## Download
+See [releases](https://github.com/tassa-yoniso-manasi-karoto/irgen/releases/).
+
+On Linux you will need **gtk3** and **webkit** installed, on Windows you will be prompted to install Microsoft's Edge-based Webview2 on launch.
+Apple makes it a pain to crosscompile programs with a GUI for MacOS so only the CLI binary is available. ¯\\\_(ツ)\_/¯
+
 ## TODO
 - "pinned" user-defined group of high-value image that can be displayed none
 
