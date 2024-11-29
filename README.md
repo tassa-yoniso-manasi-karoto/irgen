@@ -63,7 +63,6 @@ Apple makes it a pain to cross-compile programs with a GUI for MacOS so only the
 
 ## TODO
 - update README docs
-- retry AnkiConnect : POST request to AnkiConnect failed error="Post \"http://localhost:8765\": readfrom tcp 127.0.0.1:42892->127.0.0.1:8765: write tcp 127.0.0.1:42892->127.0.0.1:8765: write: broken pipe"
 - zoom img with JS
 - reimplement MvAddendumToCxt
 - "pinned" user-defined group of high-value image that can be displayed none

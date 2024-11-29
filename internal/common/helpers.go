@@ -5,6 +5,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"net"
+	"strings"
 	"context"
 	"time"
 	"sync/atomic"
@@ -22,7 +24,7 @@ import (
 )
 
 const (
-	maxRetries = 2
+	maxRetries = 3
 	retryDelay = 1 * time.Second
 	jsonMIME = "application/json"
 )
@@ -38,44 +40,6 @@ type AnkiConnectRequest struct {
 type AnkiConnectResponse struct {
 	Result json.RawMessage `json:"result"`
 	Error  interface{}     `json:"error"`
-}
-
-func SendAnkiConnectRequest(m *meta.Meta, action string, params interface{}) (json.RawMessage, error) {
-	request := AnkiConnectRequest{
-		Action:  action,
-		Version: 6,
-		Params:  params,
-	}
-
-	jsonData, err := json.Marshal(request)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request: %w", err)
-	}
-
-	resp, err := http.Post("http://localhost:8765", jsonMIME, bytes.NewBuffer(jsonData))
-	if err != nil {
-		m.Log.Error().
-			Err(err).
-			Msg("POST request to AnkiConnect failed")
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var response AnkiConnectResponse
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		m.Log.Error().
-			Err(err).
-			Msg("couldn't decode AnkiConnect response")
-		return nil, err
-	}
-
-	if response.Error != nil {
-		str := fmt.Sprint("AnkiConnect: ", response.Error)
-		m.Log.Error().Msg(str)
-		return nil, errors.New(str)
-	}
-
-	return response.Result, nil
 }
 
 func QueryAnkiConnect(m *meta.Meta, q AnkiConnectRequest) (result string, err error) {
@@ -135,6 +99,16 @@ func VerifyNoteTypeFields(m *meta.Meta, modelName string, expectedFields []strin
 	return nil
 }
 
+func compareFields(actual, expected []string) bool {
+	for i, field := range actual {
+		if len(expected)-1 >= i && field != expected[i] {
+			return false
+		}
+	}
+	return true
+}
+
+
 
 func CreateDeck(m *meta.Meta, deckName string) error {
 	params := map[string]interface{}{
@@ -160,15 +134,103 @@ func AddNote(m *meta.Meta, deckName string, modelName string, fields map[string]
 	return err
 }
 
-
-func compareFields(actual, expected []string) bool {
-	for i, field := range actual {
-		if len(expected)-1 >= i && field != expected[i] {
-			return false
+func SendAnkiConnectRequest(m *meta.Meta, action string, params interface{}) (json.RawMessage, error) {
+	var lastErr error
+	
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		result, err := sendAnkiConnectRequestSingle(m, action, params)
+		if err == nil {
+			return result, nil
+		}
+		
+		// Only retry on network errors
+		if !isNetworkError(err) {
+			return nil, err
+		}
+		
+		lastErr = err
+		m.Log.Warn().
+			Err(err).
+			Int("attempt", attempt).
+			Str("action", action).
+			Msg("Network error in AnkiConnect request, retrying...")
+		
+		// Wait before retrying, using exponential backoff
+		if attempt < maxRetries {
+			time.Sleep(retryDelay * time.Duration(attempt))
 		}
 	}
-	return true
+	
+	return nil, fmt.Errorf("failed after %d attempts: %w", maxRetries, lastErr)
 }
+
+func sendAnkiConnectRequestSingle(m *meta.Meta, action string, params interface{}) (json.RawMessage, error) {
+	request := AnkiConnectRequest{
+		Action:  action,
+		Version: 6,
+		Params:  params,
+	}
+
+	jsonData, err := json.Marshal(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	resp, err := http.Post("http://localhost:8765", jsonMIME, bytes.NewBuffer(jsonData))
+	if err != nil {
+		m.Log.Error().
+			Err(err).
+			Msg("POST request to AnkiConnect failed")
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var response AnkiConnectResponse
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		m.Log.Error().
+			Err(err).
+			Msg("couldn't decode AnkiConnect response")
+		return nil, err
+	}
+
+	if response.Error != nil {
+		str := fmt.Sprint("AnkiConnect: ", response.Error)
+		m.Log.Error().Msg(str)
+		return nil, errors.New(str)
+	}
+
+	return response.Result, nil
+}
+
+func isNetworkError(err error) bool {
+	if err == nil {
+		return false
+	}
+	
+	// Check for specific network-related errors
+	if _, ok := err.(net.Error); ok {
+		return true
+	}
+	
+	// Check for common network error strings
+	errStr := err.Error()
+	networkErrors := []string{
+		"connection refused",
+		"broken pipe",
+		"connection reset",
+		"EOF",
+		"timeout",
+	}
+	
+	for _, netErr := range networkErrors {
+		if strings.Contains(strings.ToLower(errStr), netErr) {
+			return true
+		}
+	}
+	
+	return false
+}
+
 
 
 type DownloadProgress struct {
