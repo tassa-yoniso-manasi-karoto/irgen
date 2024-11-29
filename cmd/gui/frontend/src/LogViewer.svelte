@@ -7,6 +7,8 @@
     export let downloadProgress = null;
     let scrollContainer;
     let autoScroll = true;
+    let isScrolling = false;
+    let scrollTimeout;
     
     function getLevelClass(level) {
         const levelMap = {
@@ -22,21 +24,43 @@
     }
     
     function handleScroll(e) {
+        if (isScrolling) return;
+        
         const target = e.currentTarget;
         const isAtBottom = Math.abs(
             target.scrollHeight - target.clientHeight - target.scrollTop
         ) < 1;
         
-        if (!isAtBottom) {
-            autoScroll = false;
+        // Only update autoScroll if user has manually scrolled
+        if (!isScrolling) {
+            autoScroll = isAtBottom;
         }
+
+        // Clear existing timeout
+        clearTimeout(scrollTimeout);
+        
+        // Set a new timeout
+        scrollTimeout = setTimeout(() => {
+            isScrolling = false;
+        }, 150); // Debounce scroll events
     }
 
     function scrollToBottom() {
-        if (scrollContainer) {
+        if (!scrollContainer || !autoScroll) return;
+        
+        isScrolling = true;
+        requestAnimationFrame(() => {
+            scrollContainer.scrollTop = scrollContainer.scrollHeight;
             setTimeout(() => {
-                scrollContainer.scrollTop = scrollContainer.scrollHeight;
-            }, 0);
+                isScrolling = false;
+            }, 50);
+        });
+    }
+
+    function toggleAutoScroll(value) {
+        autoScroll = value;
+        if (autoScroll) {
+            scrollToBottom();
         }
     }
 
@@ -64,31 +88,40 @@
     onDestroy(() => {
         EventsOff("log");
         EventsOff("download-progress");
+        clearTimeout(scrollTimeout);
     });
+
+    $: if (logs.length && autoScroll) {
+        scrollToBottom();
+    }
 </script>
 
 <div class="log-viewer">
     <div class="controls">
-	<div class="auto-scroll">
-	    <button 
-		type="button" 
-		class="checkbox-button" 
-		on:click={() => autoScroll = !autoScroll}
-		aria-pressed={autoScroll}
-	    >
-		<input 
-		    type="checkbox" 
-		    checked={autoScroll}
-		    aria-hidden="true"
-		    readonly
-		/>
-		Auto-scroll
-	    </button>
-	</div>
+        <div class="auto-scroll">
+            <button 
+                type="button" 
+                class="checkbox-button" 
+                on:click={() => toggleAutoScroll(!autoScroll)}
+                aria-pressed={autoScroll}
+            >
+                <input 
+                    type="checkbox" 
+                    checked={autoScroll}
+                    on:change={(e) => toggleAutoScroll(e.target.checked)}
+                    aria-hidden="true"
+                />
+                Auto-scroll
+            </button>
+        </div>
         <button on:click={clearLogs}>Clear</button>
     </div>
     
-    <div class="log-container" bind:this={scrollContainer} on:scroll={handleScroll}>
+    <div 
+        class="log-container" 
+        bind:this={scrollContainer} 
+        on:scroll={handleScroll}
+    >
         {#each logs as log}
             <div class="log-entry">
                 <span class="time">{log.time}</span>
@@ -111,7 +144,6 @@
         {/if}
     </div>
 </div>
-
 
 <style>
     .log-viewer {
