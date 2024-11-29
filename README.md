@@ -53,10 +53,18 @@ _(h1, h2... are the heading tags that will appear in the raw HTML you don't need
 ## Download
 See [releases](https://github.com/tassa-yoniso-manasi-karoto/irgen/releases/).
 
-On Linux you will need **gtk3** and **webkit** installed, on Windows you will be prompted to install Microsoft's Edge-based Webview2 on launch.
-Apple makes it a pain to crosscompile programs with a GUI for MacOS so only the CLI binary is available. ¯\\\_(ツ)\_/¯
+IRGen requires the Anki addon **[AnkiConnect](https://ankiweb.net/shared/info/2055492159)** to communicate with Anki, otherwise it will output a tab-separated file containing the notes to be imported manually.
+
+On Linux you will need **gtk3** and **webkit** installed.
+
+On Windows you will be prompted to install Microsoft's Edge-based Webview2 on launch.
+
+Apple makes it a pain to cross-compile programs with a GUI for MacOS so only the CLI binary is available. ¯\\\_(ツ)\_/¯
 
 ## TODO
+- update README docs
+- zoom img with JS
+- reimplement mvAddendumToContext
 - "pinned" user-defined group of high-value image that can be displayed none
 
 ## About

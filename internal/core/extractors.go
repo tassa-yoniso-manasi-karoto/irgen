@@ -13,12 +13,12 @@ import (
 	"bytes"
 	"strings"
 	"sort"
-	"time"
 	"path"
 	"errors"
 	"os"
 	"net/url"
 	"context"
+	"slices"
 	
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gookit/color"
@@ -29,7 +29,6 @@ import (
 	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/meta"
 	"github.com/tassa-yoniso-manasi-karoto/irgen/internal/common"
 )
-
 
 type ExtractorType struct {
 	Validator			   *regexp.Regexp
@@ -46,7 +45,10 @@ type ThumbnailType struct {
 	Pass bool
 }
 
-var extractors = []ExtractorType{wiki}
+var (
+	extractors = []ExtractorType{wiki}
+	SupportedIMGExt = []string{".jpg", ".jpeg", ".png", ".tif", ".tiff", ".gif", ".svg", ".webp", ".avif"}
+)
 
 var local = ExtractorType{
 	Name: "local",
@@ -65,6 +67,7 @@ var wiki = ExtractorType{
 	Clean: func(doc *goquery.Document, lang string) {
 		doc.Find(".sistersitebox, #toc, table.navbox-inner").Remove()
 		doc.Find("table.metadata, span.mw-editsection").Remove()
+		doc.Find("table.sidebar").Remove()
 		doc.Find("table.mw-collapsible").Children().First().Unwrap()		
 		doc.Find("h1").Remove()
 		doc.Find("a").Each(func(i int, s *goquery.Selection) {
@@ -142,7 +145,7 @@ var wiki = ExtractorType{
 					Current:		currentImage,
 					Total:			totalImages,
 					Progress:		progress,
-					CurrentFile:	prettyName,
+					CurrentFile:		prettyName,
 					Speed:			"",
 					Operation:		"Analyzing resolutions for",
 				})
@@ -152,6 +155,8 @@ var wiki = ExtractorType{
 			}
 
 			href = wikiPrefForHiRes(m, href)
+			filename, _ = url.QueryUnescape(path.Base(href))
+			// minimize clutter
 			s.RemoveAttr("width")
 			s.RemoveAttr("height")
 			s.RemoveAttr("srcset")
@@ -159,14 +164,16 @@ var wiki = ExtractorType{
 			s.RemoveAttr("class")
 			s.RemoveAttr("data-file-height")
 			s.RemoveAttr("data-file-width")
+			// update the src in the <img> with the new file
 			s.SetAttr("src", filename)
+			// remove wiki file description link
 			s.Unwrap()
-			p := m.Config.CollectionMedia + filename
-			if _, err := os.Stat(p); errors.Is(err, os.ErrNotExist) {
+			path := filepath.Join(m.Config.CollectionMedia, filename)
+			if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
 				URLs = append(URLs, "https://"+strings.TrimPrefix(href, "//"))
 				filenames = append(filenames, filename)
-				currentTime := time.Now().Local()
-				_ = os.Chtimes(p, currentTime, currentTime)
+			} else {
+				m.Log.Trace().Str("path", path).Msg("Img exist already")
 			}
 		})
 
@@ -190,29 +197,30 @@ var wiki = ExtractorType{
 
 func (Extractor ExtractorType) TakeImgAlong(ctx context.Context, m *meta.Meta, n *goquery.Selection) {
 	if Extractor.Name == "local"  {
-		files, _ := ioutil.ReadDir(filepath.Dir(m.Targ))
+		origDir := filepath.Dir(m.Targ)
+		files, _ := ioutil.ReadDir(origDir)
 		var total int
 		for _, file := range files {
-			for _, ext := range []string{".jpg", ".jpeg", ".png", ".tif", ".tiff", ".gif", ".svg", ".webp", ".avif"} {
-				fpath := filepath.Join(filepath.Dir(m.Targ), file.Name())
-				_, err := os.Stat(m.Config.CollectionMedia + file.Name())
-				if ext == filepath.Ext(file.Name()) && errors.Is(err, os.ErrNotExist) {
-					from, err := os.Open(fpath)
-					if err != nil {
-						m.Log.Error().Err(err).Str("fpath", fpath).Msg("can't read img to copy")
-					}
-					to, err := os.OpenFile(m.Config.CollectionMedia + file.Name(), os.O_CREATE|os.O_WRONLY, 0644)
-					if err != nil {
-						m.Log.Error().Err(err).Str("fpath", fpath).Msg("can't access destination where img must be copied")
-					}
-					_, err = io.Copy(to, from)
-					if err != nil {
-						m.Log.Error().Err(err).Str("fpath", fpath).Msg("file copying error")
-					}
-					from.Close()
-					to.Close()
-					total += 1
+			origPath := filepath.Join(origDir, file.Name())
+			destPath := filepath.Join(m.Config.CollectionMedia, file.Name())
+			_, err := os.Stat(destPath)
+			if errors.Is(err, os.ErrNotExist) && slices.Contains(SupportedIMGExt, filepath.Ext(origPath)) {
+				origFile, err := os.Open(origPath)
+				if err != nil {
+					m.Log.Error().Err(err).Str("origPath", origPath).Msg("can't read img to copy")
 				}
+				destFile, err := os.OpenFile(m.Config.CollectionMedia + file.Name(), os.O_CREATE|os.O_WRONLY, 0644)
+				if err != nil {
+					m.Log.Error().Err(err).Str("origPath", origPath).Msg("can't access destination where img must be copied")
+				}
+				// very counterintuitive but io.Copy is: Copy(dst Writer, src Reader)
+				_, err = io.Copy(destFile, origFile)
+				if err != nil {
+					m.Log.Error().Err(err).Str("origPath", origPath).Msg("file copying error")
+				}
+				origFile.Close()
+				destFile.Close()
+				total += 1
 			}
 		}
 		m.Log.Info().Msg(fmt.Sprint(total, " images copied."))
@@ -268,12 +276,14 @@ func wikiPrefForHiRes(m *meta.Meta, href string) (wanted string) {
 	for _, Thumbnail := range Thumbnails {
 		if Thumbnail.Pass {
 			wanted = Thumbnail.Href
+			m.Log.Trace().Str("wanted", wanted).Str("href", href).Msg("THERE IS resized variant")
 		}
 	}
 	// some low res img don't have any resized variants
 	if len(Thumbnails) == 0 {
 		doc.Find("a.internal").Each(func(index int, s *goquery.Selection) {
 			wanted, _ = s.Attr("href")
+			m.Log.Trace().Str("wanted", wanted).Str("href", href).Msg("NO resized variant")
 		})
 	}
 	return

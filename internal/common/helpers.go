@@ -11,6 +11,7 @@ import (
 	"errors"
 	"bytes"
 	"encoding/json"
+	"path/filepath"
 	
 	"github.com/schollz/progressbar/v3"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -243,7 +244,7 @@ func DownloadFiles(ctx context.Context, m *meta.Meta, URLs, filenames []string) 
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			fullPath := m.Config.CollectionMedia + filenames[i]
+			fullPath := filepath.Join(m.Config.CollectionMedia, filenames[i])
 			written, err := retryableDownload(ctx, fullPath, URL, &totalBytesDownloaded, m)
 			
 			// Always increment current and update progress, even on failure
@@ -259,6 +260,9 @@ func DownloadFiles(ctx context.Context, m *meta.Meta, URLs, filenames []string) 
 					Msg("Failed to download file after all retries")
 			}
 
+			// 'touch' file to current time
+			currentTime := time.Now().Local()
+			_ = os.Chtimes(fullPath, currentTime, currentTime)
 			if !m.GUIMode {
 				bar.Add(1)
 			} else {
