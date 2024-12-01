@@ -181,6 +181,7 @@ func Execute(ctx context.Context, m *meta.Meta) (success bool) {
 		Notes = append(Notes, Note)
 	})
 	if ok := common.QueryAnkiConnectMediaDir(m); ok {
+		m.Log.Info().Msg("Importing to Anki over AnkiConnect...")
 		if err := common.VerifyNoteTypeFields(m, "IR3", IR3Fields); err != nil {
 			m.Log.Error().
 				Err(err).
